@@ -31,7 +31,7 @@ Uses
 
   - Svg3D is the main service and deals mainly with instancianting Object3d and the rendering and animation in the svg tag
 
-  - Object3d deals with the 3d maths and geometry. At this time its only geometry is a cube.
+  - Object3d deals with the 3d maths and geometry. At this time it is only geometry is a cube.
 
     - note that the streching is done on world coordinate system, not the model. This needs to change in the future, if ones plans to have a better interaction with the 3d objects.
 
