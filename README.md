@@ -1,27 +1,51 @@
-# MathGlNg
+# Angular 3d basic samples code with Math-gl
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.1.0.
+Just some basic 3D cubes with animations to try out the technology with angular.
 
-## Development server
+Uses
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- [@math.gl/core](https://github.com/uber-web/math.gl) for the maths
+  > A 3D/WebGL math library
+- [@svgdotjs/svg.js](https://github.com/svgdotjs/svg.js) for ease of manipulating the svg.
 
-## Code scaffolding
+  > The lightweight library for manipulating and animating SVG
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+  ## Notes
 
-## Build
+  Based on the code at [Sample-3D-cube
+  ](https://github.com/audiBookning/Sample-3D-cube)
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+  For performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein many thing can be done yet. And a good part of the code reminds more of spaguety than anything else. refactoring is dearly needed.
 
-## Running unit tests
+## Usefull Angular cli commands for dev
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Add `--dry-run` flag to only test the command without creating any files
 
-## Running end-to-end tests
+### modules
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+- generate a lazy loaded module with a default fooMod component and with routing for that component inside the fooMod module.
 
-## Further help
+  - `--route` is to add the module fooMod with a lazy route named 'fooModRoute' to the routes array of the -m module
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+  `ng g m fooMod --route fooModRoute -m app`
+
+### components
+
+- generate a component at the root project and imported by the root module
+
+  `ng g c fooComp`
+
+- generate a component inside the threejs folder and imported by
+
+  - the root module if no foo module exist
+  - the foo module if it exist
+
+  `ng g c foo/barComp`
+
+- generate a component at the root project and imported by the -m module
+
+  `ng g c fooComp -m fooMod`
+
+- generate a component inside the -m module and imported by the same module
+
+  `ng g c foo/fooComp -m fooMod`
