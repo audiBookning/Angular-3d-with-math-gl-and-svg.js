@@ -1,17 +1,10 @@
+import { Injectable } from '@angular/core';
 import {
   configure as glConfigure,
   Matrix4,
-  NumericArray,
   toRadians,
   Vector4,
 } from '@math.gl/core';
-import {
-  G,
-  PointArrayAlias,
-  Polygon as SvgPolygon,
-  Svg,
-  SVG,
-} from '@svgdotjs/svg.js';
 
 import { SCALEDefaultCONSTANT } from './constants';
 import {
@@ -23,38 +16,73 @@ import {
   VectorHash,
 } from './types';
 
+@Injectable({
+  providedIn: 'root',
+})
 export class Object3d {
   // Math.gl
   // pseudo constants as long as the camera is not changed
   fullTransformMatrix!: Matrix4;
   perspectiveMatrix: Matrix4 | undefined;
-  rotateXMatrix!: Matrix4;
+  rotateXMatrix: Matrix4 | undefined;
   stretchMatrix!: Matrix4;
 
   // Geometries
   nodesHash!: VectorHash;
-  polygons!: PolygonsRefNodes[];
+  polygons: PolygonsRefNodes[] | undefined;
 
   // Temp variables for Performance
 
   tempPerformanceVector: Vector4 = new Vector4();
 
-  // Constants - Cube
-
-  private _rotationRadians = toRadians(0);
-  public get rotationRadians() {
-    return this._rotationRadians;
+  // Cube
+  private _scale: number | number[] = 1;
+  public get scale(): number | number[] {
+    return this._scale;
   }
-  public set rotationRadians(value) {
+  public set scale(value: number | number[]) {
+    this._scale = value;
+    this.stretchMatrix = new Matrix4().scale(this.scale);
+    this.stretchPolygon();
+  }
+  private _scaleX: number = 1;
+  public get scaleX(): number {
+    return this._scaleX;
+  }
+  public set scaleX(value: number) {
+    this._scaleX = value;
+    this.scale = [value, 1, 1];
+  }
+  scaleY: number = 1;
+  scaleZ: number = 1;
+
+  private _rotationRadians: number | undefined;
+  public get rotationRadians() {
+    return this._rotationRadians || 0;
+  }
+  public set rotationRadians(value: number) {
     this._rotationRadians = toRadians(value);
     this.rotateXMatrix = new Matrix4().rotateY(this.rotationRadians);
   }
 
-  constructor({ scale = [1, 1, 1] }: Partial<Object3DInput> = {}) {
-    this.initMathsAnd3D({ scale });
+  constructor() {
+    this.rotationRadians = toRadians(0);
   }
 
-  private initMathsAnd3D({ scale }: Object3DInput) {
+  set({ scale = [1, 1, 1], rotation = 0 }: Partial<Object3DInput> = {}) {
+    this.scale = scale;
+
+    this.scaleX = Array.isArray(scale) ? scale[0] : scale;
+    this.scaleY = Array.isArray(scale) ? scale[1] : scale;
+    this.scaleZ = Array.isArray(scale) ? scale[2] : scale;
+
+    //this.obj3d.scale = scale;
+    this.rotationRadians = rotation;
+
+    this.initMathsAnd3D();
+  }
+
+  private initMathsAnd3D() {
     // INFO: Math.gl performance config. Doesn't seem to do much in this case.
     glConfigure({ debug: false });
     // INFO: Since the camera isn't moving, we can use the same perspective matrix
@@ -64,17 +92,21 @@ export class Object3d {
     const { points, polygons } = this.generateCube();
     this.nodesHash = points;
 
-    this.stretchMatrix = new Matrix4().scale(scale);
+    this.stretchMatrix = new Matrix4().scale(this.scale);
     this.stretchPolygon();
     this.polygons = polygons;
   }
 
   rotatePolygon() {
-    Object.keys(this.nodesHash).forEach((index) => {
-      this.nodesHash[index] = this.nodesHash[index].transform(
-        this.rotateXMatrix
-      );
-    });
+    if (this.rotateXMatrix === undefined) {
+      throw new Error('rotateXMatrix is undefined');
+    }
+
+    for (const key in this.nodesHash) {
+      if (Object.prototype.hasOwnProperty.call(this.nodesHash, key)) {
+        this.nodesHash[key] = this.nodesHash[key].transform(this.rotateXMatrix);
+      }
+    }
   }
 
   private stretchPolygon() {

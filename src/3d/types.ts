@@ -9,12 +9,12 @@ export type ConstructorOptions = Object3DInput & SvgInput;
 
 export interface Object3DInput {
   scale: number[];
+  rotation: number;
 }
 
 export interface SvgInput {
   svgWidth: number;
   svgHeight: number;
-  rotation: number;
 }
 
 export interface NodeHash {

@@ -1,34 +1,93 @@
-import { toRadians } from '@math.gl/core';
+import {
+  animate,
+  anticipate,
+  backIn,
+  backInOut,
+  backOut,
+  circIn,
+  circInOut,
+  circOut,
+  easeIn,
+  easeInOut,
+  easeOut,
+  Easing,
+  linear,
+} from 'popmotion';
+
+import { Injectable, NgZone } from '@angular/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
 import { Object3d } from './Object3d';
 import {
-  ConstructorOptions,
   DisplayPolygonsRefNodes,
+  Object3DInput,
   PolygonsRefNodes,
   SvgInput,
   SvgPolygonHash,
 } from './types';
 
+interface EasingHash {
+  [key: string]: Easing;
+}
+
+@Injectable({
+  providedIn: 'root',
+})
 export class Svg3D {
+  //
+  private svgPolygonHash: SvgPolygonHash = {};
+  private svgGroup: G | undefined;
+  private clearSvgFlag: boolean = true;
+  private svgDraw: Svg | undefined;
+
+  private polygonTemp: DisplayPolygonsRefNodes[] = [];
+  private ispinningFlag: boolean = false;
+
+  // Popmotion
+  private playback: {
+    stop: () => void;
+  } | null = null;
+
+  private lastStep: number = 0;
+
   obj3d: Object3d;
 
-  //
-  svgPolygonHash: SvgPolygonHash = {};
-  svgGroup: G;
-  clearSvgFlag: boolean = true;
-  svgDraw: Svg;
+  resetObj3DInput: Object3DInput | undefined;
 
-  polygonTemp: DisplayPolygonsRefNodes[] = [];
-  ispinningFlag: boolean = false;
+  // Popmotion
+  tweens: EasingHash[] = [
+    { linear: linear },
+    { easeIn: easeIn },
+    { easeOut: easeOut },
+    { easeInOut: easeInOut },
+    { circIn: circIn },
+    { circOut: circOut },
+    { circInOut: circInOut },
+    { backIn: backIn },
+    { backOut: backOut },
+    { backInOut: backInOut },
+    { anticipate: anticipate },
+    //{'cubicBezier': cubicBezier},
+  ];
 
-  constructor(
-    obj3d: Object3d,
+  constructor(private zone: NgZone) {
+    this.obj3d = new Object3d();
+  }
+
+  obj3dSet({ scale = [1, 1, 1], rotation = 0 }: Partial<Object3DInput> = {}) {
+    this.resetObj3DInput = { scale, rotation };
+    this.obj3d.set({ scale, rotation });
+  }
+
+  obj3dReset() {
+    this.obj3d = new Object3d();
+    this.obj3dSet(this.resetObj3DInput);
+  }
+
+  set(
     svg: HTMLElement,
-    { rotation = 0, svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
+    { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
   ) {
-    this.obj3d = obj3d;
-    obj3d.rotationRadians = rotation;
     this.svgDraw = SVG();
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
 
@@ -38,11 +97,16 @@ export class Svg3D {
   svgdestroy() {
     this.ispinningFlag = false;
     this.polygonTemp = [];
-    this.svgDraw.remove();
+    if (this.svgDraw) this.svgDraw.remove();
   }
 
   private drawPolygon = (polygonTemp: DisplayPolygonsRefNodes) => {
-    if (!polygonTemp.color || !polygonTemp.id || !polygonTemp.nodes)
+    if (
+      !polygonTemp.color ||
+      !polygonTemp.id ||
+      !polygonTemp.nodes ||
+      !this.svgGroup
+    )
       throw new Error('No color found');
 
     if (this.clearSvgFlag) {
@@ -57,6 +121,7 @@ export class Svg3D {
   };
 
   private drawPolygonArray = () => {
+    if (!this.svgGroup) throw new Error('No svgGroup found');
     this.polygonTemp.forEach((polygon, index) => {
       this.drawPolygon(polygon);
     });
@@ -72,12 +137,63 @@ export class Svg3D {
   // because of not using zone??
   animateFrames() {
     this.ispinningFlag = true;
-    this.renderAndUpdate();
+    this.updateAndRender();
   }
 
-  private renderAndUpdate = () => {
+  animatePop = ({
+    duration,
+    scale,
+    tween = 'linear',
+  }: {
+    duration: number;
+    scale: number;
+    tween: string;
+  }) => {
+    if (!this.obj3d) throw new Error('No obj3d found');
+    this.obj3dReset();
+
+    //
+    this.lastStep = this.obj3d.scaleX;
+    const beginScale = this.obj3d.scaleX;
+    const easing: Easing = this.tweens[
+      tween as keyof EasingHash[]
+    ] as unknown as Easing;
+
+    this.zone.run(() => {
+      this.playback = animate({
+        from: beginScale,
+        to: scale,
+        duration: duration * 100,
+        ease: easing,
+        //repeat: 2,
+        //repeatDelay: 200,
+        onUpdate: (latest: number) => {
+          this.ispinningFlag = true;
+
+          const step = latest / this.lastStep;
+
+          this.obj3d.scaleX = step;
+          this.updateAndRender();
+          this.lastStep = latest;
+        },
+        onComplete: () => {
+          this.ispinningFlag = false;
+        },
+      });
+      this.ispinningFlag = true;
+    });
+  };
+  animate = () => {
+    this.ispinningFlag = true;
+    this.updateAndRender();
+    requestAnimationFrame(this.animate);
+  };
+
+  private updateAndRender = () => {
+    if (!this.svgGroup) throw new Error('No obj3d found');
     if (!this.ispinningFlag) return;
     if (this.clearSvgFlag) this.svgGroup.clear();
+
     this.polygonTemp = [];
     this.rotatePolygon();
 
@@ -85,7 +201,6 @@ export class Svg3D {
 
     this.drawPolygonArray();
     this.clearSvgFlag = false;
-    requestAnimationFrame(this.renderAndUpdate);
   };
 
   private sortPolygonArray() {
@@ -98,6 +213,8 @@ export class Svg3D {
   }
 
   sortAndGetScreen() {
+    if (!this.obj3d) throw new Error('No obj3d found');
+    if (!this.obj3d.polygons) throw new Error('No polygons found');
     // INFO: iterate over the polygons and get the screen points and zIndex
     for (let index = 0; index < this.obj3d.polygons.length; index++) {
       const ki = this.obj3d.polygons[index] || {};

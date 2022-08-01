@@ -5,17 +5,35 @@ Just some basic 3D cubes with animations to try out the technology with angular.
 Uses
 
 - [@math.gl/core](https://github.com/uber-web/math.gl) for the maths
+
   > A 3D/WebGL math library
+
 - [@svgdotjs/svg.js](https://github.com/svgdotjs/svg.js) for ease of manipulating the svg.
 
   > The lightweight library for manipulating and animating SVG
+
+- [Popmotion](https://github.com/popmotion/popmotion) for timeline animation of the stretching
+
+  > "Simple animation libraries for delightful user interfaces"
 
   ## Notes
 
   Based on the code at [Sample-3D-cube
   ](https://github.com/audiBookning/Sample-3D-cube)
 
-  For performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein many thing can be done yet. And a good part of the code reminds more of spaguety than anything else. refactoring is dearly needed.
+  Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein many thing can be done yet. And a good part of the code reminds more of spaguety than anything else.
+
+  Refactoring is dearly needed.
+
+  ## Svg3D and Object3d
+
+  The funcionality is divided in 2 classes.
+
+  - Svg3D is the main service and deals mainly with instancianting Object3d and the rendering and animation in the svg tag
+
+  - Object3d deals with the 3d maths and geometry. At this time its only geometry is a cube.
+
+    - note that the streching is done on world coordinate system, not the model. This needs to change in the future, if ones plans to have a better interaction with the 3d objects.
 
 ## Usefull Angular cli commands for dev
 

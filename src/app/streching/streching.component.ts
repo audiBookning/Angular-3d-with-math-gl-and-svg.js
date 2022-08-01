@@ -1,4 +1,20 @@
 import {
+  animate,
+  anticipate,
+  backIn,
+  backInOut,
+  backOut,
+  circIn,
+  circInOut,
+  circOut,
+  easeIn,
+  easeInOut,
+  easeOut,
+  Easing,
+  linear,
+} from 'popmotion';
+
+import {
   AfterViewInit,
   Component,
   ElementRef,
@@ -17,19 +33,39 @@ import { Svg3D } from '../../3d/Svg3d';
 export class StrechingComponent implements AfterViewInit, OnDestroy {
   @ViewChild('svgParent', { static: true })
   svgParent!: ElementRef<HTMLElement>;
-  obj3d!: Object3d;
-  svg3D!: Svg3D;
+  selectedTween: string = 'linear';
 
-  constructor() {}
+  tweens: string[] = [
+    'linear',
+    'easeIn',
+    'easeOut',
+    'easeInOut',
+    'circIn',
+    'circOut',
+    'circInOut',
+    'backIn',
+    'backOut',
+    'backInOut',
+    'anticipate',
+    //{'cubicBezier': cubicBezier},
+  ];
+
+  constructor(private svg3D: Svg3D) {}
   ngAfterViewInit(): void {
-    this.obj3d = new Object3d({
-      scale: [1.5, 1, 1],
+    this.svg3D.obj3dSet({
+      scale: [1, 1, 1],
+      //rotation: 3.5,
     });
 
-    this.svg3D = new Svg3D(this.obj3d, this.svgParent.nativeElement, {
-      rotation: 0,
+    this.svg3D.set(this.svgParent.nativeElement);
+  }
+
+  beginAnimation() {
+    this.svg3D.animatePop({
+      duration: 12,
+      scale: 3,
+      tween: this.selectedTween,
     });
-    this.svg3D.animateFrames();
   }
 
   ngOnDestroy(): void {

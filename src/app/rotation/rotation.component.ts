@@ -17,16 +17,13 @@ import { Svg3D } from '../../3d/Svg3d';
 export class RotationComponent implements AfterViewInit, OnDestroy {
   @ViewChild('svgParent', { static: true })
   svgParent!: ElementRef<HTMLElement>;
-  obj3d!: Object3d;
-  svg3D!: Svg3D;
 
-  constructor() {}
+  constructor(private svg3D: Svg3D) {}
   ngAfterViewInit(): void {
-    this.obj3d = new Object3d();
-    this.svg3D = new Svg3D(this.obj3d, this.svgParent.nativeElement, {
-      rotation: 1.5,
-    });
-    this.svg3D.animateFrames();
+    this.svg3D.set(this.svgParent.nativeElement, {});
+    this.svg3D.obj3dSet({ rotation: 1.5 });
+
+    this.svg3D.animate();
   }
 
   ngOnDestroy(): void {

@@ -20,6 +20,7 @@
     "@angular/router": "^14.1.0",
     "@math.gl/core": "^3.6.2",
     "@svgdotjs/svg.js": "^3.1.2",
+    "popmotion": "^11.0.3",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.11.4"
