@@ -9,7 +9,7 @@ import { StrechingComponent } from './streching.component';
 
 @NgModule({
   declarations: [StrechingComponent],
-  providers: [Svg3D],
+  providers: [],
   imports: [CommonModule, FormsModule, StrechingRoutingModule],
 })
 export class StrechingModule {}

@@ -13,6 +13,7 @@ import {
   Easing,
   linear,
 } from 'popmotion';
+import { Subject } from 'rxjs';
 
 import { Injectable, NgZone } from '@angular/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
@@ -69,9 +70,12 @@ export class Svg3D {
     { anticipate: anticipate },
     //{'cubicBezier': cubicBezier},
   ];
+  clickObservable: Subject<string>;
+  requestAFID: number | undefined;
 
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
+    this.clickObservable = new Subject<string>();
   }
 
   obj3dSet({ scale = [1, 1, 1], rotation = 0 }: Partial<Object3DInput> = {}) {
@@ -88,6 +92,8 @@ export class Svg3D {
     svg: HTMLElement,
     { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
   ) {
+    this.svgdestroy();
+
     this.svgDraw = SVG();
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
 
@@ -95,9 +101,17 @@ export class Svg3D {
   }
 
   svgdestroy() {
+    this.obj3dReset();
     this.ispinningFlag = false;
     this.polygonTemp = [];
-    if (this.svgDraw) this.svgDraw.remove();
+    this.svgPolygonHash = {};
+    if (this.requestAFID) cancelAnimationFrame(this.requestAFID);
+
+    this.clearSvgFlag = true;
+    if (this.svgDraw && this.svgGroup) {
+      this.svgDraw.remove();
+      //this.svgGroup.remove();
+    }
   }
 
   private drawPolygon = (polygonTemp: DisplayPolygonsRefNodes) => {
@@ -113,6 +127,17 @@ export class Svg3D {
       const newPolygon = this.svgGroup
         .polygon(polygonTemp.nodes)
         .fill(polygonTemp.color);
+
+      newPolygon.data('id', polygonTemp.id);
+
+      newPolygon.click((event: PointerEvent) => {
+        if (event !== null && event.target instanceof SVGPolygonElement) {
+          const data: DOMStringMap = event.target.dataset as DOMStringMap;
+
+          this.clickObservable.next(data['id'] || '');
+        }
+      });
+
       this.svgPolygonHash[polygonTemp.id] = newPolygon;
     } else {
       this.svgPolygonHash[polygonTemp.id].plot(polygonTemp.nodes);
@@ -136,6 +161,11 @@ export class Svg3D {
   // this avoids some memory leaks that happenned in this project with possibly angular and requestAnimationFrame
   // because of not using zone??
   animateFrames() {
+    this.ispinningFlag = true;
+    this.updateAndRender();
+  }
+
+  render() {
     this.ispinningFlag = true;
     this.updateAndRender();
   }
@@ -178,6 +208,7 @@ export class Svg3D {
         },
         onComplete: () => {
           this.ispinningFlag = false;
+          this.lastStep = 0;
         },
       });
       this.ispinningFlag = true;
@@ -186,7 +217,7 @@ export class Svg3D {
   animate = () => {
     this.ispinningFlag = true;
     this.updateAndRender();
-    requestAnimationFrame(this.animate);
+    this.requestAFID = requestAnimationFrame(this.animate);
   };
 
   private updateAndRender = () => {

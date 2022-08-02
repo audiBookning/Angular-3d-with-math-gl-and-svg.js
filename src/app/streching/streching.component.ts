@@ -52,8 +52,9 @@ export class StrechingComponent implements AfterViewInit, OnDestroy {
 
   constructor(private svg3D: Svg3D) {}
   ngAfterViewInit(): void {
+    // can set some properties in the 3d object itself
     this.svg3D.obj3dSet({
-      scale: [1, 1, 1],
+      //scale: [1, 1, 1],
       //rotation: 3.5,
     });
 
@@ -69,6 +70,6 @@ export class StrechingComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.svg3D?.svgdestroy();
+    this.svg3D.svgdestroy();
   }
 }

@@ -8,7 +8,7 @@ import { RotationComponent } from './rotation.component';
 
 @NgModule({
   declarations: [RotationComponent],
-  providers: [Svg3D],
+  providers: [],
   imports: [CommonModule, RotationRoutingModule],
 })
 export class RotationModule {}
