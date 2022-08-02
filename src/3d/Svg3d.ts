@@ -16,21 +16,19 @@ import {
 import { Subject } from 'rxjs';
 
 import { Injectable, NgZone } from '@angular/core';
-import { Vector3 } from '@math.gl/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
 import { Object3d } from './Object3d';
 import {
+  ClickObservable,
   DisplayPolygonsRefNodes,
+  EasingHash,
   Object3DInput,
+  PolygonDistByAxis,
   PolygonsRefNodes,
   SvgInput,
   SvgPolygonHash,
 } from './types';
-
-interface EasingHash {
-  [key: string]: Easing;
-}
 
 @Injectable({
   providedIn: 'root',
@@ -71,18 +69,22 @@ export class Svg3D {
     { anticipate: anticipate },
     //{'cubicBezier': cubicBezier},
   ];
-  clickObservable: Subject<string>;
+  clickObservable: Subject<ClickObservable | undefined>;
   requestAFID: number | undefined;
   animateCameraDegree: number | undefined;
 
+  //
+  distanceByaxisObservable: Subject<PolygonDistByAxis> =
+    new Subject<PolygonDistByAxis>();
+
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
-    this.clickObservable = new Subject<string>();
+    this.clickObservable = new Subject<ClickObservable | undefined>();
   }
 
   obj3dSet({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
     this.resetObj3DInput = { scale, rotation };
-    this.obj3d.set({ scale, rotation });
+    this.obj3d.setInitValues({ scale, rotation });
   }
 
   obj3dReset() {
@@ -130,13 +132,22 @@ export class Svg3D {
         .polygon(polygonTemp.nodes)
         .fill(polygonTemp.color);
 
-      newPolygon.data('id', polygonTemp.id);
+      const data: ClickObservable = {
+        id: polygonTemp.id,
+        axis: polygonTemp.axis,
+      };
+
+      newPolygon.data('data', data);
 
       newPolygon.click((event: PointerEvent) => {
         if (event !== null && event.target instanceof SVGPolygonElement) {
-          const data: DOMStringMap = event.target.dataset as DOMStringMap;
+          const dataset: DOMStringMap = event.target.dataset as DOMStringMap;
+          const gh: string | undefined = dataset['data'];
+          if (!gh) throw new Error('No data found');
 
-          this.clickObservable.next(data['id'] || '');
+          const tt: ClickObservable = JSON.parse(gh);
+
+          this.clickObservable.next(tt);
         }
       });
 
@@ -176,14 +187,15 @@ export class Svg3D {
     duration,
     scale,
     tween = 'linear',
+    poligonId = '1',
   }: {
     duration: number;
     scale: number;
     tween: string;
+    poligonId?: string;
   }) => {
     if (!this.obj3d) throw new Error('No obj3d found');
     this.obj3dReset();
-
     //
     this.lastStep = this.obj3d.scaleX;
     const beginScale = this.obj3d.scaleX;
@@ -191,9 +203,14 @@ export class Svg3D {
       tween as keyof EasingHash[]
     ] as unknown as Easing;
 
+    //
+
+    this.obj3d.polygonScaleId = poligonId;
+    this.obj3d.polygonScaleNormal = this.obj3d.getNormal();
+
     this.zone.run(() => {
       this.playback = animate({
-        from: beginScale,
+        from: 1,
         to: scale,
         duration: duration * 100,
         ease: easing,
@@ -201,10 +218,18 @@ export class Svg3D {
         //repeatDelay: 200,
         onUpdate: (latest: number) => {
           this.ispinningFlag = true;
+          //const step = latest / this.lastStep;
+          const step = latest - this.lastStep;
+          if (poligonId) {
+            this.obj3d.setPoligonScale(step);
+          } else {
+            this.obj3d.scaleX = step;
+          }
+          this.obj3d.getPolygonDistance();
+          // INFO: The subject observable must be called in the zone or inside a DI class?
+          if (this.obj3d.distanceByAxis)
+            this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
 
-          const step = latest / this.lastStep;
-
-          this.obj3d.scaleX = step;
           this.updateAndRender();
           this.lastStep = latest;
         },
@@ -216,6 +241,7 @@ export class Svg3D {
       this.ispinningFlag = true;
     });
   };
+
   animate = () => {
     this.zone.run(() => {
       this.ispinningFlag = true;
@@ -257,7 +283,6 @@ export class Svg3D {
 
   private sortPolygonArray() {
     this.sortAndGetScreen();
-    //    console.log('this.polygonTemp: ', this.polygonTemp);
 
     // sort polygons by zIndex
     this.polygonTemp = this.polygonTemp.sort((a, b) => {
@@ -277,6 +302,8 @@ export class Svg3D {
         color: this.obj3d.polygons[index].color,
         id: this.obj3d.polygons[index].id,
         order: this.obj3d.polygons[index].order,
+        axis: this.obj3d.polygons[index].axis,
+        opositeFace: this.obj3d.polygons[index].opositeFace,
       };
       this.polygonTemp.push(newPolygonsRefNodes);
     }
@@ -288,7 +315,7 @@ export class Svg3D {
     let zIndex: number = 0;
 
     const hhhhh = polygonHash.order.flatMap((index) => {
-      const vect = polygonHash.nodes[index];
+      const vect = polygonHash.nodesHash[index];
       const [pointX1, pointY1, PointZ] = this.obj3d.getScreenCoordinates(vect);
       zIndex += PointZ;
       return [pointX1, pointY1];

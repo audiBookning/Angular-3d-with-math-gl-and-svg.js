@@ -24,7 +24,7 @@ export class OrbitComponent implements AfterViewInit, OnDestroy {
     this.svg3D.obj3dSet();
 
     this.svg3D.animateCamera(1);
-    //console.log('ngAfterViewInit toRadians: ', toRadians(1));
+    // console.log('ngAfterViewInit toRadians: ', toRadians(1));
     console.log('*************');
   }
 

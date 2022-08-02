@@ -21,9 +21,9 @@ Uses
   Based on the code at [Sample-3D-cube
   ](https://github.com/audiBookning/Sample-3D-cube)
 
-  Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein many thing can be done yet. And a good part of the code reminds more of spaguety than anything else.
+  Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein many thing can be done yet.
 
-  Refactoring is dearly needed.
+  Refactoring is dearly needed. Not only performance but the code in trying to be simpler and avoid too much abstraction, is beginning to be too specific and reminds more of spaguety than anything else
 
   ## Svg3D and Object3d
 

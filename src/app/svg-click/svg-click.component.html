@@ -1,3 +1,17 @@
+<span>Showing stretching animation and polygon click subscription</span>
+<div>x: {{ xdistance }}, y: {{ ydistance }}, z: {{ zdistance }}</div>
+<div>
+  <br />
+  <label>
+    Animations
+    <select [(ngModel)]="selectedTween">
+      <option *ngFor="let s of tweens" [ngValue]="s">
+        {{ s }}
+      </option>
+    </select>
+  </label>
+  <button (click)="beginAnimation()">Begin</button>
+</div>
 <div>{{ clicked }}</div>
 
 <div #svgParent class="svgParentElement"></div>

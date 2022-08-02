@@ -8,11 +8,6 @@ const routes: Routes = [
       import('./rotation/rotation.module').then((m) => m.RotationModule),
   },
   {
-    path: 'streching',
-    loadChildren: () =>
-      import('./streching/streching.module').then((m) => m.StrechingModule),
-  },
-  {
     path: 'svgClick',
     loadChildren: () =>
       import('./svg-click/svg-click.module').then((m) => m.SvgClickModule),
