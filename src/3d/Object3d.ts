@@ -3,6 +3,7 @@ import {
   configure as glConfigure,
   Matrix4,
   toRadians,
+  Vector3,
   Vector4,
 } from '@math.gl/core';
 
@@ -22,18 +23,32 @@ import {
 export class Object3d {
   // Math.gl
   // pseudo constants as long as the camera is not changed
-  fullTransformMatrix!: Matrix4;
-  perspectiveMatrix: Matrix4 | undefined;
-  rotateXMatrix: Matrix4 | undefined;
-  stretchMatrix!: Matrix4;
-
-  // Geometries
-  nodesHash!: VectorHash;
-  polygons: PolygonsRefNodes[] | undefined;
+  private fullTransformMatrix!: Matrix4;
+  private perspectiveMatrix: Matrix4 | undefined;
+  private rotateXMatrix: Matrix4 | undefined;
+  private stretchMatrix!: Matrix4;
+  private fovy: number = Math.PI * 0.5;
 
   // Temp variables for Performance
+  private tempPerformanceVector: Vector4 = new Vector4();
 
-  tempPerformanceVector: Vector4 = new Vector4();
+  // Geometries
+  private nodesHash!: VectorHash;
+  polygons: PolygonsRefNodes[] | undefined;
+
+  // Camera
+  private cameraInitialPosition!: Vector3;
+  private cameraLookAt!: Vector3;
+  private cameraUpDirection!: Vector3;
+  private _cameraCurrentPosition!: Vector3;
+  public get cameraCurrentPosition(): Vector3 {
+    return this._cameraCurrentPosition;
+  }
+  public set cameraCurrentPosition(value: Vector3) {
+    this._cameraCurrentPosition = value;
+
+    this.setFullTransformMatrix();
+  }
 
   // Cube
   private _scale: number | number[] = 1;
@@ -69,7 +84,18 @@ export class Object3d {
     this.rotationRadians = toRadians(0);
   }
 
-  set({ scale = [1, 1, 1], rotation = 0 }: Partial<Object3DInput> = {}) {
+  setInitialcameraPosition = () => {
+    // Point the camera is looking at
+    this.cameraLookAt = new Vector3([0, 0, 0]);
+    // Initial position of the camera
+    this.cameraInitialPosition = new Vector3([1, 1, 1]);
+    // Current position of the camera
+    this._cameraCurrentPosition = this.cameraInitialPosition.clone();
+
+    this.cameraUpDirection = new Vector3([0, 1, 0]);
+  };
+
+  set({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
     this.scale = scale;
 
     this.scaleX = Array.isArray(scale) ? scale[0] : scale;
@@ -77,8 +103,9 @@ export class Object3d {
     this.scaleZ = Array.isArray(scale) ? scale[2] : scale;
 
     //this.obj3d.scale = scale;
-    this.rotationRadians = rotation;
+    if (rotation) this.rotationRadians = rotation;
 
+    this.setInitialcameraPosition();
     this.initMathsAnd3D();
   }
 
@@ -87,7 +114,8 @@ export class Object3d {
     glConfigure({ debug: false });
     // INFO: Since the camera isn't moving, we can use the same perspective matrix
     // for all the polygons and transformations (rotation, ...). This is a performance optimization.
-    this.fullTransformMatrix = this.getPerspectiveMatrix();
+    this.setPerspectiveMatrix();
+    this.setFullTransformMatrix();
 
     const { points, polygons } = this.generateCube();
     this.nodesHash = points;
@@ -97,9 +125,22 @@ export class Object3d {
     this.polygons = polygons;
   }
 
+  rotateCamera(rotInput: number) {
+    const origin = this.cameraLookAt;
+    const rotationVector = this.cameraCurrentPosition;
+
+    const radians = toRadians(rotInput);
+    const newCameraPosition = rotationVector.rotateY({
+      radians: radians,
+      origin,
+    });
+
+    this.cameraCurrentPosition = newCameraPosition;
+  }
+
   rotatePolygon() {
     if (this.rotateXMatrix === undefined) {
-      throw new Error('rotateXMatrix is undefined');
+      return;
     }
 
     for (const key in this.nodesHash) {
@@ -218,6 +259,7 @@ export class Object3d {
     };
   }
 
+  // TODO: Not really needed at this moment. Correct Type anotation should be enough.
   private convertToVect4(pointsHash: NodeHash): VectorHash {
     const converted: VectorHash = {};
     Object.keys(pointsHash).forEach(function (key) {
@@ -239,25 +281,25 @@ export class Object3d {
     return [x, y, Z];
   }
 
-  private getPerspectiveMatrix() {
-    const fovy = Math.PI * 0.5;
-    this.perspectiveMatrix = new Matrix4();
+  private setFullTransformMatrix() {
+    if (!this.perspectiveMatrix)
+      throw new Error('Perspective matrix not initialized');
 
-    const perspective = this.perspectiveMatrix.orthographic({
-      fovy,
+    const lookAt = this.perspectiveMatrix.lookAt({
+      eye: this.cameraCurrentPosition,
+      center: this.cameraLookAt,
+      up: this.cameraUpDirection,
+    });
+
+    this.fullTransformMatrix = lookAt.scale(SCALEDefaultCONSTANT);
+  }
+
+  setPerspectiveMatrix() {
+    this.perspectiveMatrix = new Matrix4().orthographic({
+      fovy: this.fovy,
       aspect: 1,
       near: 0,
       far: 1,
     });
-
-    const lookAt = perspective.lookAt({
-      eye: [1, 1, 1],
-      center: [0, 0, 0],
-      up: [0, 1, 0],
-    });
-
-    const fullTransform = lookAt.scale(SCALEDefaultCONSTANT);
-
-    return fullTransform;
   }
 }

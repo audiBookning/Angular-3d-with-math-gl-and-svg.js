@@ -17,6 +17,11 @@ const routes: Routes = [
     loadChildren: () =>
       import('./svg-click/svg-click.module').then((m) => m.SvgClickModule),
   },
+  {
+    path: 'orbit',
+    loadChildren: () =>
+      import('./orbit/orbit.module').then((m) => m.OrbitModule),
+  },
 ];
 
 @NgModule({

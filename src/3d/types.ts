@@ -8,8 +8,8 @@ export interface SvgPolygonHash {
 export type ConstructorOptions = Object3DInput & SvgInput;
 
 export interface Object3DInput {
-  scale: number[];
-  rotation: number;
+  scale?: number[];
+  rotation?: number;
 }
 
 export interface SvgInput {

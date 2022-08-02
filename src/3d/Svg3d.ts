@@ -16,6 +16,7 @@ import {
 import { Subject } from 'rxjs';
 
 import { Injectable, NgZone } from '@angular/core';
+import { Vector3 } from '@math.gl/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
 import { Object3d } from './Object3d';
@@ -72,13 +73,14 @@ export class Svg3D {
   ];
   clickObservable: Subject<string>;
   requestAFID: number | undefined;
+  animateCameraDegree: number | undefined;
 
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
     this.clickObservable = new Subject<string>();
   }
 
-  obj3dSet({ scale = [1, 1, 1], rotation = 0 }: Partial<Object3DInput> = {}) {
+  obj3dSet({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
     this.resetObj3DInput = { scale, rotation };
     this.obj3d.set({ scale, rotation });
   }
@@ -215,9 +217,28 @@ export class Svg3D {
     });
   };
   animate = () => {
+    this.zone.run(() => {
+      this.ispinningFlag = true;
+      this.updateAndRender();
+      this.requestAFID = requestAnimationFrame(this.animate);
+    });
+  };
+
+  animateCamera = (rotInput: number) => {
     this.ispinningFlag = true;
+    this.animateCameraDegree = rotInput;
+    this.animateRequest();
+  };
+
+  animateRequest = () => {
+    if (!this.animateCameraDegree)
+      throw new Error('No animateCameraDegree found');
+
+    this.obj3d.rotateCamera(this.animateCameraDegree);
+
     this.updateAndRender();
-    this.requestAFID = requestAnimationFrame(this.animate);
+
+    this.requestAFID = requestAnimationFrame(this.animateRequest);
   };
 
   private updateAndRender = () => {
@@ -236,6 +257,7 @@ export class Svg3D {
 
   private sortPolygonArray() {
     this.sortAndGetScreen();
+    //    console.log('this.polygonTemp: ', this.polygonTemp);
 
     // sort polygons by zIndex
     this.polygonTemp = this.polygonTemp.sort((a, b) => {
