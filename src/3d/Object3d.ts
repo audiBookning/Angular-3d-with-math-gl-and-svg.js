@@ -36,27 +36,27 @@ export class Object3d {
   private tempPerformanceVector: Vector4 = new Vector4();
 
   // Geometries
-  private nodesHash!: VectorHash;
-  polygons: PolygonsRefNodes[] | undefined;
-  distanceByAxis: PolygonDistByAxis | undefined;
+  private nodesHash: VectorHash | undefined;
+  public polygons: PolygonsRefNodes[] | undefined;
+  public distanceByAxis: PolygonDistByAxis | undefined;
 
   // Camera
   private cameraInitialPosition!: Vector3;
   private cameraLookAt!: Vector3;
   private cameraUpDirection!: Vector3;
-  polygonScaleId: string | undefined;
-  polygonToScale: PolygonsRefNodes | undefined;
+  // TODO: Should be merged on a single object?
+  private polygonScaleId: string | undefined;
+  private polygonToScale: PolygonsRefNodes | undefined;
   // **
   private _polygonScaleNormal: Vector3 | undefined;
-  polygonAxisId: string | undefined;
+  private polygonAxisId: string | undefined;
 
   public get polygonScaleNormal(): Vector3 {
-    const hytg = this.getNormal();
+    const hytg = this.getPolygonNormal();
     return this._polygonScaleNormal || hytg;
   }
   public set polygonScaleNormal(value: Vector3) {
     this._polygonScaleNormal = value;
-    //this.getNormal()
   }
   // **
   private _cameraCurrentPosition!: Vector3;
@@ -70,60 +70,20 @@ export class Object3d {
 
   // TODO: delete all the scale props?
   // Cube
-  private _scale: number | number[] = 1;
-  public get scale(): number | number[] {
-    return this._scale;
-  }
-  public set scale(value: number | number[]) {
-    this._scale = value;
-    this.stretchMatrix = new Matrix4().scale(this.scale);
-
-    this.stretchPolygon();
-  }
-  // **
-  private _scaleX: number = 1;
-  public get scaleX(): number {
-    return this._scaleX;
-  }
-  public set scaleX(value: number) {
-    this._scaleX = value;
-    this.scale = [value, 1, 1];
-  }
-  // **
-  private _scaleY: number = 1;
-  public get scaleY(): number {
-    return this._scaleY;
-  }
-  public set scaleY(value: number) {
-    this._scaleY = value;
-    this.scale = [1, value, 1];
-  }
-  // **
-  private _scaleZ: number = 1;
-  public get scaleZ(): number {
-    return this._scaleZ;
-  }
-  public set scaleZ(value: number) {
-    this._scaleZ = value;
-    this.scale = [1, 1, value];
-  }
 
   // **
-  private _rotationRadians: number | undefined;
-  public get rotationRadians() {
-    return this._rotationRadians || 0;
-  }
-  public set rotationRadians(value: number) {
-    this._rotationRadians = toRadians(value);
-    this.rotateXMatrix = new Matrix4().rotateY(this.rotationRadians);
+
+  private setRotationRadians(value: number) {
+    const rotationRadians = toRadians(value);
+    this.rotateXMatrix = new Matrix4().rotateY(rotationRadians);
   }
 
   // **************************
   constructor() {
-    this.rotationRadians = toRadians(0);
+    this.setRotationRadians(0);
   }
 
-  setInitialcameraPosition = () => {
+  private setInitialcameraPosition = () => {
     // Point the camera is looking at
     this.cameraLookAt = new Vector3([0, 0, 0]);
     // Initial position of the camera
@@ -134,21 +94,23 @@ export class Object3d {
     this.cameraUpDirection = new Vector3([0, 1, 0]);
   };
 
-  setInitValues({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
-    this.scale = scale;
+  public setInitValues({
+    scale = [1, 1, 1],
+    rotation,
+  }: Partial<Object3DInput> = {}) {
+    const scaleX = Array.isArray(scale) ? scale[0] : scale;
+    const scaleY = Array.isArray(scale) ? scale[1] : scale;
+    const scaleZ = Array.isArray(scale) ? scale[2] : scale;
 
-    this.scaleX = Array.isArray(scale) ? scale[0] : scale;
-    this.scaleY = Array.isArray(scale) ? scale[1] : scale;
-    this.scaleZ = Array.isArray(scale) ? scale[2] : scale;
+    this.stretchMatrix = new Matrix4().scale([scaleX, scaleY, scaleZ]);
 
-    //this.obj3d.scale = scale;
-    if (rotation) this.rotationRadians = rotation;
+    if (rotation) this.setRotationRadians(rotation);
 
     this.setInitialcameraPosition();
     this.initMathsAnd3D();
-    this.stretchPolygon();
+    this.stretch3dObject();
 
-    this.getPolygonDistance();
+    this.updatePolygonDistance();
   }
 
   private initMathsAnd3D() {
@@ -161,15 +123,34 @@ export class Object3d {
 
     const { points, polygons } = this.generateCube();
     this.nodesHash = points;
+    const defaultScale = [1, 1, 1];
 
-    this.stretchMatrix = new Matrix4().scale(this.scale);
+    this.stretchMatrix = new Matrix4().scale(defaultScale);
     this.polygons = polygons;
   }
 
-  /* ****************** */
+  /*
+    POLYGONS
+  */
 
-  setPoligonScale = (scale2: number) => {
-    this.getNormal();
+  public updatePolygonsTransformId(
+    polygonId: string | undefined,
+    axis: string
+  ) {
+    this.polygonScaleId = polygonId;
+    this.polygonAxisId = axis;
+  }
+
+  public updatePolygonsSaleAndDistance(scale: number) {
+    this.setPoligonScale(scale);
+
+    this.updatePolygonDistance();
+  }
+
+  private setPoligonScale = (scale2: number) => {
+    if (!this.nodesHash) throw new Error('nodesHash is undefined');
+
+    this.getPolygonNormal();
     if (!this.polygonToScale) throw new Error('Polygon not found');
     const normalTemp = this.polygonScaleNormal;
     const ggg = normalTemp.clone().multiplyByScalar(scale2);
@@ -182,7 +163,7 @@ export class Object3d {
     }
   };
 
-  getNormal(): Vector3 {
+  private getPolygonNormal(): Vector3 {
     let polygon: PolygonsRefNodes | undefined;
     if (this.polygonScaleId) {
       polygon = this.polygons?.find(
@@ -214,7 +195,10 @@ export class Object3d {
     return normal;
   }
 
-  rotateCamera(rotInput: number) {
+  /*
+    CAMERA
+  */
+  public rotateCamera(rotInput: number) {
     const origin = this.cameraLookAt;
     const rotationVector = this.cameraCurrentPosition;
 
@@ -227,7 +211,8 @@ export class Object3d {
     this.cameraCurrentPosition = newCameraPosition;
   }
 
-  rotatePolygon() {
+  // INFO: Rotate the 3d object
+  public rotatePolygon() {
     if (this.rotateXMatrix === undefined) {
       return;
     }
@@ -239,7 +224,7 @@ export class Object3d {
     }
   }
 
-  private stretchPolygon() {
+  private stretch3dObject() {
     for (const key in this.nodesHash) {
       if (Object.prototype.hasOwnProperty.call(this.nodesHash, key)) {
         this.nodesHash[key] = this.nodesHash[key].transform(this.stretchMatrix);
@@ -247,63 +232,9 @@ export class Object3d {
     }
   }
 
-  private getNodesReferenceByPolygons(
-    polygons: PolygonCubeObj[],
-    nodesVector: VectorHash
-  ): PolygonsRefNodes[] {
-    // INFO: iterate over the polygons and get the nodes reference
-    const PolygonsRef: PolygonsRefNodes[] = [];
-    for (const key in polygons) {
-      if (Object.prototype.hasOwnProperty.call(polygons, key)) {
-        const polygon = polygons[key];
-
-        const randomColor: string =
-          '#' + Math.floor(Math.random() * 16777215).toString(16);
-
-        const tempPolygon: PolygonsRefNodes = {
-          id: polygon.id,
-          nodesHash: {},
-          color: randomColor,
-          order: polygon.points,
-          zIndex: -200,
-          axis: polygon.axis,
-          opositeFace: polygon.opositeFace,
-        };
-        let zIndex: number = 0;
-
-        polygon.points.forEach((point) => {
-          zIndex += nodesVector[point].z;
-          tempPolygon.nodesHash = {
-            ...tempPolygon.nodesHash,
-            [point]: nodesVector[point],
-          };
-        });
-        tempPolygon.zIndex = zIndex;
-        PolygonsRef.push(tempPolygon);
-      }
-    }
-
-    return PolygonsRef;
-  }
-
-  groupBy = <T>(
-    array: Array<T>,
-    property: (x: T) => string
-  ): { [key: string]: Array<T> } =>
-    array.reduce((memo: { [key: string]: Array<T> }, x: T) => {
-      if (!memo[property(x)]) {
-        memo[property(x)] = [];
-      }
-      memo[property(x)].push(x);
-      return memo;
-    }, {});
-
-  // TODO: to delete?
-  setAxisDistances() {
-    this.getPolygonDistance();
-  }
-
-  getPolygonDistance() {
+  // INFO: Update the distance of the opposite polygons
+  public updatePolygonDistance() {
+    if (!this.nodesHash) throw new Error('nodesHash is undefined');
     if (!this.polygons) throw new Error('Polygons not found');
 
     const polygonsByaxis = this.groupBy(
@@ -328,6 +259,45 @@ export class Object3d {
     }
   }
 
+  /*
+    Set transform matrixes
+  */
+  // Convert Vextor4 to array of 3 numbers
+  public getScreenCoordinates(vector: Vector4) {
+    const transformV = this.fullTransformMatrix.transform(
+      vector,
+      this.tempPerformanceVector
+    );
+
+    const [x, y, Z] = transformV;
+    return [x, y, Z];
+  }
+
+  private setFullTransformMatrix() {
+    if (!this.perspectiveMatrix)
+      throw new Error('Perspective matrix not initialized');
+
+    const lookAt = this.perspectiveMatrix.lookAt({
+      eye: this.cameraCurrentPosition,
+      center: this.cameraLookAt,
+      up: this.cameraUpDirection,
+    });
+
+    this.fullTransformMatrix = lookAt.scale(SCALEDefaultCONSTANT);
+  }
+
+  private setPerspectiveMatrix() {
+    this.perspectiveMatrix = new Matrix4().orthographic({
+      fovy: this.fovy,
+      aspect: 1,
+      near: 0,
+      far: 1,
+    });
+  }
+
+  /*
+    UTILS - Cube
+  */
   private generateCube(): Cube3d {
     let nodes: NodeHash = {
       '0': {
@@ -397,6 +367,21 @@ export class Object3d {
     };
   }
 
+  /*
+    UTILS - general
+   */
+  private groupBy = <T>(
+    array: Array<T>,
+    property: (x: T) => string
+  ): { [key: string]: Array<T> } =>
+    array.reduce((memo: { [key: string]: Array<T> }, x: T) => {
+      if (!memo[property(x)]) {
+        memo[property(x)] = [];
+      }
+      memo[property(x)].push(x);
+      return memo;
+    }, {});
+
   // TODO: Not really needed at this moment. Correct Type anotation should be enough.
   private convertToVect4(pointsHash: NodeHash): VectorHash {
     const converted: VectorHash = {};
@@ -409,35 +394,43 @@ export class Object3d {
     return converted;
   }
 
-  getScreenCoordinates(vector: Vector4) {
-    const transformV = this.fullTransformMatrix.transform(
-      vector,
-      this.tempPerformanceVector
-    );
+  // Convert polygon array to a PolygonsRefNodes object
+  private getNodesReferenceByPolygons(
+    polygons: PolygonCubeObj[],
+    nodesVector: VectorHash
+  ): PolygonsRefNodes[] {
+    // INFO: iterate over the polygons and get the nodes reference
+    const PolygonsRef: PolygonsRefNodes[] = [];
+    for (const key in polygons) {
+      if (Object.prototype.hasOwnProperty.call(polygons, key)) {
+        const polygon = polygons[key];
 
-    const [x, y, Z] = transformV;
-    return [x, y, Z];
-  }
+        const randomColor: string =
+          '#' + Math.floor(Math.random() * 16777215).toString(16);
 
-  private setFullTransformMatrix() {
-    if (!this.perspectiveMatrix)
-      throw new Error('Perspective matrix not initialized');
+        const tempPolygon: PolygonsRefNodes = {
+          id: polygon.id,
+          nodesHash: {},
+          color: randomColor,
+          order: polygon.points,
+          zIndex: -200,
+          axis: polygon.axis,
+          opositeFace: polygon.opositeFace,
+        };
+        let zIndex: number = 0;
 
-    const lookAt = this.perspectiveMatrix.lookAt({
-      eye: this.cameraCurrentPosition,
-      center: this.cameraLookAt,
-      up: this.cameraUpDirection,
-    });
+        polygon.points.forEach((point) => {
+          zIndex += nodesVector[point].z;
+          tempPolygon.nodesHash = {
+            ...tempPolygon.nodesHash,
+            [point]: nodesVector[point],
+          };
+        });
+        tempPolygon.zIndex = zIndex;
+        PolygonsRef.push(tempPolygon);
+      }
+    }
 
-    this.fullTransformMatrix = lookAt.scale(SCALEDefaultCONSTANT);
-  }
-
-  setPerspectiveMatrix() {
-    this.perspectiveMatrix = new Matrix4().orthographic({
-      fovy: this.fovy,
-      aspect: 1,
-      near: 0,
-      far: 1,
-    });
+    return PolygonsRef;
   }
 }

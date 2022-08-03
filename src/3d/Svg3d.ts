@@ -76,20 +76,18 @@ export class Svg3D {
 
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
+    this.obj3dSet();
     this.clickObservable = new Subject<ClickObservable | undefined>();
   }
 
+  // INFO: set some properties of the obj3d
   obj3dSet({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
     this.resetObj3DInput = { scale, rotation };
     this.obj3d.setInitValues({ scale, rotation });
   }
 
-  obj3dReset() {
-    this.obj3d = new Object3d();
-    this.obj3dSet(this.resetObj3DInput);
-  }
-
-  set(
+  // INFO: Init the svg object with the HTML element
+  setSVG(
     svg: HTMLElement,
     { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
   ) {
@@ -102,19 +100,148 @@ export class Svg3D {
     //this.svgGroup = this.svgDraw.nested();
   }
 
-  svgdestroy() {
-    this.obj3dReset();
-    this.ispinningFlag = false;
-    this.polygonTemp = [];
-    this.svgPolygonHash = {};
-    if (this.requestAFID) cancelAnimationFrame(this.requestAFID);
+  // INFO: auto scale the svg to fit the screen
+  scaleSvgGroup() {
+    // TODO: when the 3d object is not really changing size,
+    // like in the rotation example, one can avoid re-calculating the scale
+    // This would be good for performance
+    // And avoid the wobling animation because of the small changes in the bounding box
+    const tagG = document.getElementsByTagName('g')[0];
 
-    this.clearSvgFlag = true;
-    if (this.svgDraw && this.svgGroup) {
-      this.svgDraw.remove();
-      //this.svgGroup.remove();
-    }
+    tagG.transform.baseVal.clear();
+    const svgSize = 260;
+    const groupWidth = this.svgGroup?.width();
+    const groupHeigh = this.svgGroup?.height();
+    const scaleafactorW = svgSize / (groupWidth as number);
+    const scaleafactorH = svgSize / (groupHeigh as number);
+
+    this.svgGroup?.scale(scaleafactorW, scaleafactorH);
+
+    const viewbox = this.svgDraw?.viewbox();
   }
+
+  /*
+    ANIMATE
+  */
+
+  animateBasic = () => {
+    this.zone.run(() => {
+      this.ispinningFlag = true;
+      this.updateAndRender();
+      this.requestAFID = requestAnimationFrame(this.animateBasic);
+    });
+  };
+
+  // INFO: animate using Popmotion library
+  animatePopmotion = ({
+    duration,
+    tween = 'linear',
+    //scale,
+    //poligonId = '1',
+    distanceInputs,
+  }: {
+    duration: number;
+    tween: string;
+    //scale: number;
+    //poligonId?: string;
+    distanceInputs: DistanceInputs;
+  }) => {
+    if (!this.obj3d) throw new Error('No obj3d found');
+
+    //
+    const polygonId = distanceInputs.id;
+    const axis = distanceInputs.axis;
+    this.obj3d.updatePolygonsTransformId(polygonId, axis);
+
+    const easing: Easing = this.tweens[
+      tween as keyof EasingHash[]
+    ] as unknown as Easing;
+
+    const from = distanceInputs[axis as keyof DistanceInputs] as number;
+    const to = distanceInputs.scale;
+    this.lastStep = from;
+
+    this.zone.run(() => {
+      animate({
+        from: from,
+        to: to,
+        duration: duration * 5,
+        ease: easing,
+        //repeat: 2,
+        //repeatDelay: 200,
+        onUpdate: (latest: number) => {
+          this.ispinningFlag = true;
+          const step = latest - this.lastStep;
+          if (step === 0) return;
+          this.obj3d.updatePolygonsSaleAndDistance(step);
+
+          // INFO: The subject observable must be called in the zone or inside a DI class?
+          if (this.obj3d.distanceByAxis)
+            this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
+
+          this.updateAndRender();
+          this.lastStep = latest;
+        },
+        onComplete: () => {
+          // TODO: to avoid having distances not exactly the same as inputed by the user
+          // one can check here and rerun the animation if the distance is not the same
+          // with updated values
+          this.ispinningFlag = false;
+          this.lastStep = 0;
+        },
+      });
+      this.ispinningFlag = true;
+    });
+  };
+
+  // INFO: Animate rotating the camera
+  animateCamera = (rotInput: number) => {
+    this.ispinningFlag = true;
+    this.animateCameraDegree = rotInput;
+    this.animateCameraRequest();
+  };
+
+  animateCameraRequest = () => {
+    if (!this.animateCameraDegree)
+      throw new Error('No animateCameraDegree found');
+
+    this.obj3d.rotateCamera(this.animateCameraDegree);
+
+    this.updateAndRender();
+    this.requestAFID = requestAnimationFrame(this.animateCameraRequest);
+  };
+
+  /*
+    RENDER
+  */
+
+  renderBasic() {
+    this.ispinningFlag = true;
+    this.updateAndRender();
+  }
+
+  private updateAndRender = () => {
+    if (!this.svgGroup) throw new Error('No obj3d found');
+    if (!this.ispinningFlag) return;
+    if (this.clearSvgFlag) this.svgGroup.clear();
+
+    this.polygonTemp = [];
+    this.obj3d.rotatePolygon();
+
+    this.sortPolygonArray();
+
+    this.drawPolygonArray();
+    this.clearSvgFlag = false;
+    this.scaleSvgGroup();
+  };
+
+  private drawPolygonArray = () => {
+    if (!this.svgGroup) throw new Error('No svgGroup found');
+    this.polygonTemp.forEach((polygon, index) => {
+      this.drawPolygon(polygon);
+    });
+    this.svgGroup.center(150, 150);
+  };
 
   private drawPolygon = (polygonTemp: DisplayPolygonsRefNodes) => {
     if (
@@ -137,6 +264,7 @@ export class Svg3D {
 
       newPolygon.data('data', data);
 
+      // INFO: add click event to the svg polygon
       newPolygon.click((event: PointerEvent) => {
         if (event !== null && event.target instanceof SVGPolygonElement) {
           const dataset: DOMStringMap = event.target.dataset as DOMStringMap;
@@ -156,173 +284,12 @@ export class Svg3D {
     }
   };
 
-  private drawPolygonArray = () => {
-    if (!this.svgGroup) throw new Error('No svgGroup found');
-    this.polygonTemp.forEach((polygon, index) => {
-      this.drawPolygon(polygon);
-    });
-    this.svgGroup.center(150, 150);
-  };
-
-  private rotatePolygon() {
-    this.obj3d.rotatePolygon();
-  }
-
-  // INFO: let the calls to animate pass by the ispinning flag first
-  // this avoids some memory leaks that happenned in this project with possibly angular and requestAnimationFrame
-  // because of not using zone??
-  animateFrames() {
-    this.ispinningFlag = true;
-    this.updateAndRender();
-  }
-
-  render() {
-    this.ispinningFlag = true;
-    this.updateAndRender();
-  }
-
-  scaleSvgGroup() {
-    // TODO: when the 3d object is not really changing size,
-    // like in the rotation example, one can avoid re-calculating the scale
-    // This would be good for performance
-    // And avoid the wobling animation because of the small changes in the bounding box
-    const tagG = document.getElementsByTagName('g')[0];
-    //console.log('tagG: ', tagG);
-    tagG.transform.baseVal.clear();
-    const svgSize = 260;
-    const groupWidth = this.svgGroup?.width();
-    const groupHeigh = this.svgGroup?.height();
-    const scaleafactorW = svgSize / (groupWidth as number);
-    const scaleafactorH = svgSize / (groupHeigh as number);
-
-    this.svgGroup?.scale(scaleafactorW, scaleafactorH);
-    /* console.log(
-      'draw - group width, height: ',
-      this.svgGroup?.width(),
-      this.svgGroup?.height()
-    ); */
-    const viewbox = this.svgDraw?.viewbox();
-    //console.log('viewbox: ', viewbox);
-  }
-
-  animatePop = ({
-    duration,
-    tween = 'linear',
-    //scale,
-    //poligonId = '1',
-    distanceInputs,
-  }: {
-    duration: number;
-    tween: string;
-    //scale: number;
-    //poligonId?: string;
-    distanceInputs: DistanceInputs;
-  }) => {
-    if (!this.obj3d) throw new Error('No obj3d found');
-    //
-
-    const easing: Easing = this.tweens[
-      tween as keyof EasingHash[]
-    ] as unknown as Easing;
-
-    //
-
-    const polygonId = distanceInputs.id;
-    this.obj3d.polygonScaleId = polygonId;
-    const axix = distanceInputs.axis;
-    this.obj3d.polygonAxisId = axix;
-
-    const from = distanceInputs[axix as keyof DistanceInputs] as number;
-    const to = distanceInputs.scale;
-    this.lastStep = from;
-
-    this.zone.run(() => {
-      animate({
-        from: from,
-        to: to,
-        duration: duration * 5,
-        //ease: easing,
-        //repeat: 2,
-        //repeatDelay: 200,
-        onUpdate: (latest: number) => {
-          this.ispinningFlag = true;
-
-          const step = latest - this.lastStep;
-
-          if (step === 0) return;
-          this.obj3d.setPoligonScale(step);
-
-          this.obj3d.getPolygonDistance();
-          // INFO: The subject observable must be called in the zone or inside a DI class?
-          if (this.obj3d.distanceByAxis)
-            this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
-
-          this.updateAndRender();
-
-          this.lastStep = latest;
-        },
-        onComplete: () => {
-          // TODO: to avoid having distances not exactly the same as inputed by the user
-          // one can check here and rerun the animation if the distance is not the same
-          // with updated values
-          this.ispinningFlag = false;
-          this.lastStep = 0;
-        },
-      });
-      this.ispinningFlag = true;
-    });
-  };
-
-  animate = () => {
-    this.zone.run(() => {
-      this.ispinningFlag = true;
-      this.updateAndRender();
-      this.requestAFID = requestAnimationFrame(this.animate);
-    });
-  };
-
-  animateCamera = (rotInput: number) => {
-    this.ispinningFlag = true;
-    this.animateCameraDegree = rotInput;
-    this.animateRequest();
-  };
-
-  animateRequest = () => {
-    if (!this.animateCameraDegree)
-      throw new Error('No animateCameraDegree found');
-
-    this.obj3d.rotateCamera(this.animateCameraDegree);
-
-    this.updateAndRender();
-
-    this.requestAFID = requestAnimationFrame(this.animateRequest);
-  };
-
-  private updateAndRender = () => {
-    if (!this.svgGroup) throw new Error('No obj3d found');
-    if (!this.ispinningFlag) return;
-    if (this.clearSvgFlag) this.svgGroup.clear();
-
-    this.polygonTemp = [];
-    this.rotatePolygon();
-
-    this.sortPolygonArray();
-
-    this.drawPolygonArray();
-    this.clearSvgFlag = false;
-    this.scaleSvgGroup();
-  };
+  /*
+    +++++++++
+  */
 
   private sortPolygonArray() {
-    this.sortAndGetScreen();
-
-    // sort polygons by zIndex
-    this.polygonTemp = this.polygonTemp.sort((a, b) => {
-      return (a.zIndex || 0) - (b.zIndex || 0);
-    });
-  }
-
-  sortAndGetScreen() {
+    // sortAndGetScreen
     if (!this.obj3d) throw new Error('No obj3d found');
     if (!this.obj3d.polygons) throw new Error('No polygons found');
     // INFO: iterate over the polygons and get the screen points and zIndex
@@ -339,6 +306,11 @@ export class Svg3D {
       };
       this.polygonTemp.push(newPolygonsRefNodes);
     }
+
+    // sort polygons by zIndex
+    this.polygonTemp = this.polygonTemp.sort((a, b) => {
+      return (a.zIndex || 0) - (b.zIndex || 0);
+    });
   }
 
   private getPolygonPoints(
@@ -354,5 +326,25 @@ export class Svg3D {
     });
 
     return { nodes: hhhhh, zIndex: zIndex };
+  }
+
+  // INFO: Cleaning the svg and 3d object
+  svgdestroy() {
+    this.obj3dReset();
+    this.ispinningFlag = false;
+    this.polygonTemp = [];
+    this.svgPolygonHash = {};
+    if (this.requestAFID) cancelAnimationFrame(this.requestAFID);
+
+    this.clearSvgFlag = true;
+    if (this.svgDraw && this.svgGroup) {
+      this.svgDraw.remove();
+      //this.svgGroup.remove();
+    }
+  }
+
+  obj3dReset() {
+    this.obj3d = new Object3d();
+    this.obj3dSet();
   }
 }

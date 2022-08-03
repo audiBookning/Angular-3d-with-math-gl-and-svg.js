@@ -53,7 +53,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     };
   }
   ngAfterViewInit(): void {
-    this.svg3D.set(this.svgParent.nativeElement, {});
+    this.svg3D.setSVG(this.svgParent.nativeElement, {});
     this.svg3D.obj3dSet();
     this.setDistances();
 
@@ -68,7 +68,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
       };
 
       // TODO: this shouldn't be called in the component
-      this.svg3D.obj3d.getPolygonDistance();
+      this.svg3D.obj3d.updatePolygonDistance();
     });
 
     this.distanceSubscription = this.svg3D.distanceByaxisObservable.subscribe(
@@ -77,10 +77,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
       }
     );
 
-    this.svg3D.render();
-    /* const tagG = document.getElementsByTagName('g')[0];
-    console.log('tagG: ', tagG);
-    tagG.transform.baseVal.clear(); */
+    this.svg3D.renderBasic();
   }
 
   setDistances(distanceByaxis?: PolygonDistByAxis) {
@@ -105,7 +102,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   }
 
   beginAnimation() {
-    this.svg3D.animatePop({
+    this.svg3D.animatePopmotion({
       duration: 12,
       tween: this.selectedTween,
       distanceInputs: this.distanceInputs,
