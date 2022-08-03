@@ -37,7 +37,7 @@ import {
 export class Svg3D {
   //
   private svgPolygonHash: SvgPolygonHash = {};
-  private svgGroup: G | undefined;
+  private svgGroup: G | Svg | undefined;
   private clearSvgFlag: boolean = true;
   private svgDraw: Svg | undefined;
 
@@ -99,6 +99,7 @@ export class Svg3D {
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
 
     this.svgGroup = this.svgDraw.group();
+    //this.svgGroup = this.svgDraw.nested();
   }
 
   svgdestroy() {
@@ -180,6 +181,30 @@ export class Svg3D {
     this.updateAndRender();
   }
 
+  scaleSvgGroup() {
+    // TODO: when the 3d object is not really changing size,
+    // like in the rotation example, one can avoid re-calculating the scale
+    // This would be good for performance
+    // And avoid the wobling animation because of the small changes in the bounding box
+    const tagG = document.getElementsByTagName('g')[0];
+    //console.log('tagG: ', tagG);
+    tagG.transform.baseVal.clear();
+    const svgSize = 260;
+    const groupWidth = this.svgGroup?.width();
+    const groupHeigh = this.svgGroup?.height();
+    const scaleafactorW = svgSize / (groupWidth as number);
+    const scaleafactorH = svgSize / (groupHeigh as number);
+
+    this.svgGroup?.scale(scaleafactorW, scaleafactorH);
+    /* console.log(
+      'draw - group width, height: ',
+      this.svgGroup?.width(),
+      this.svgGroup?.height()
+    ); */
+    const viewbox = this.svgDraw?.viewbox();
+    //console.log('viewbox: ', viewbox);
+  }
+
   animatePop = ({
     duration,
     tween = 'linear',
@@ -233,9 +258,13 @@ export class Svg3D {
             this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
 
           this.updateAndRender();
+
           this.lastStep = latest;
         },
         onComplete: () => {
+          // TODO: to avoid having distances not exactly the same as inputed by the user
+          // one can check here and rerun the animation if the distance is not the same
+          // with updated values
           this.ispinningFlag = false;
           this.lastStep = 0;
         },
@@ -281,6 +310,7 @@ export class Svg3D {
 
     this.drawPolygonArray();
     this.clearSvgFlag = false;
+    this.scaleSvgGroup();
   };
 
   private sortPolygonArray() {

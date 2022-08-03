@@ -21,7 +21,7 @@ export class RotationComponent implements AfterViewInit, OnDestroy {
   constructor(private svg3D: Svg3D) {}
   ngAfterViewInit(): void {
     this.svg3D.set(this.svgParent.nativeElement, {});
-    this.svg3D.obj3dSet({ rotation: 1.5 });
+    this.svg3D.obj3dSet({ rotation: 0.7 });
 
     this.svg3D.animate();
   }

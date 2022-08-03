@@ -1,8 +1,8 @@
 <span>Showing stretching animation and polygon click subscription</span>
 <div>
-  <span>x: {{ distanceInputs.x | number: "1.0-2" }}, </span>
-  <span>y: {{ distanceInputs.y | number: "1.0-2" }}, </span>
-  <span>z: {{ distanceInputs.z | number: "1.0-2" }}</span>
+  <span>length: {{ distanceInputs.x | number: "1.0-2" }}, </span>
+  <span>width: {{ distanceInputs.y | number: "1.0-2" }}, </span>
+  <span>thickness: {{ distanceInputs.z | number: "1.0-2" }}</span>
 </div>
 <div>
   <br />
@@ -17,7 +17,7 @@
   <button (click)="beginAnimation()">Begin</button>
 </div>
 <div>clicked: {{ distanceInputs.axis }}</div>
-<label for="xvalue">x: </label>
+<label for="xvalue">length: </label>
 <input
   type="text"
   name="xvalue"
@@ -26,9 +26,9 @@
   placeholder="x value"
   (focus)="saveValue($event)"
   (blur)="processChange($event, 'x')"
-  [ngModel]="distanceInputs.x"
+  [ngModel]="distanceInputs.x | number: '1.0-2'"
 />
-<label for="yvalue">y: </label>
+<label for="yvalue">width: </label>
 <input
   type="text"
   name="yvalue"
@@ -37,9 +37,9 @@
   placeholder="y value"
   (focus)="saveValue($event)"
   (blur)="processChange($event, 'y')"
-  [ngModel]="distanceInputs.y"
+  [ngModel]="distanceInputs.y | number: '1.0-2'"
 />
-<label for="zvalue">z: </label>
+<label for="zvalue">thickness: </label>
 <input
   type="text"
   name="zvalue"
@@ -48,7 +48,7 @@
   placeholder="z value"
   (focus)="saveValue($event)"
   (blur)="processChange($event, 'z')"
-  [ngModel]="distanceInputs.z"
+  [ngModel]="distanceInputs.z | number: '1.0-2'"
 />
 
 <div #svgParent class="svgParentElement"></div>

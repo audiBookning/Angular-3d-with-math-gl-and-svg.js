@@ -78,6 +78,9 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     );
 
     this.svg3D.render();
+    /* const tagG = document.getElementsByTagName('g')[0];
+    console.log('tagG: ', tagG);
+    tagG.transform.baseVal.clear(); */
   }
 
   setDistances(distanceByaxis?: PolygonDistByAxis) {

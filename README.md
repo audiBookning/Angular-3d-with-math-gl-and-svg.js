@@ -31,6 +31,7 @@ Uses
   - scale and scale\* not being updated or used correctly
   - stretchMatrix the same...
   - polygons, nodesHash the same...
+  - some poligons are not rendered correctly at some times because of the random color generated are not correct. Sometimes they only have 4 digits instead of 6
 
   ## Svg3D and Object3d
 
