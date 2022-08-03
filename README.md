@@ -25,6 +25,13 @@ Uses
 
   Refactoring is dearly needed. Not only performance but the code in trying to be simpler and avoid too much abstraction, is beginning to be too specific and reminds more of spaguety than anything else
 
+  ## TODO:
+
+  - distanceByAxis not being updated when stretching
+  - scale and scale\* not being updated or used correctly
+  - stretchMatrix the same...
+  - polygons, nodesHash the same...
+
   ## Svg3D and Object3d
 
   The funcionality is divided in 2 classes.

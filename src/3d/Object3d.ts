@@ -48,9 +48,11 @@ export class Object3d {
   polygonToScale: PolygonsRefNodes | undefined;
   // **
   private _polygonScaleNormal: Vector3 | undefined;
+  polygonAxisId: string | undefined;
 
   public get polygonScaleNormal(): Vector3 {
-    return this._polygonScaleNormal || this.getNormal();
+    const hytg = this.getNormal();
+    return this._polygonScaleNormal || hytg;
   }
   public set polygonScaleNormal(value: Vector3) {
     this._polygonScaleNormal = value;
@@ -66,6 +68,7 @@ export class Object3d {
     this.setFullTransformMatrix();
   }
 
+  // TODO: delete all the scale props?
   // Cube
   private _scale: number | number[] = 1;
   public get scale(): number | number[] {
@@ -74,6 +77,7 @@ export class Object3d {
   public set scale(value: number | number[]) {
     this._scale = value;
     this.stretchMatrix = new Matrix4().scale(this.scale);
+
     this.stretchPolygon();
   }
   // **
@@ -86,8 +90,23 @@ export class Object3d {
     this.scale = [value, 1, 1];
   }
   // **
-  scaleY: number = 1;
-  scaleZ: number = 1;
+  private _scaleY: number = 1;
+  public get scaleY(): number {
+    return this._scaleY;
+  }
+  public set scaleY(value: number) {
+    this._scaleY = value;
+    this.scale = [1, value, 1];
+  }
+  // **
+  private _scaleZ: number = 1;
+  public get scaleZ(): number {
+    return this._scaleZ;
+  }
+  public set scaleZ(value: number) {
+    this._scaleZ = value;
+    this.scale = [1, 1, value];
+  }
 
   // **
   private _rotationRadians: number | undefined;
@@ -98,11 +117,6 @@ export class Object3d {
     this._rotationRadians = toRadians(value);
     this.rotateXMatrix = new Matrix4().rotateY(this.rotationRadians);
   }
-
-  // **
-  distanceX: number | undefined;
-  distanceY: number | undefined;
-  distanceZ: number | undefined;
 
   // **************************
   constructor() {
@@ -155,11 +169,13 @@ export class Object3d {
   /* ****************** */
 
   setPoligonScale = (scale2: number) => {
+    this.getNormal();
     if (!this.polygonToScale) throw new Error('Polygon not found');
-    const ggg = this.polygonScaleNormal.clone().multiplyByScalar(scale2);
-    const polygonNormalV4 = new Vector4([...ggg, 0]);
+    const normalTemp = this.polygonScaleNormal;
+    const ggg = normalTemp.clone().multiplyByScalar(scale2);
 
-    this.stretchMatrix = new Matrix4().translate(polygonNormalV4).invert();
+    const [x, y, z] = ggg;
+    this.stretchMatrix = new Matrix4().makeTranslation(+x, +y, +z);
     for (const iterator of this.polygonToScale.order) {
       const gghb: Vector4 = this.nodesHash[iterator];
       gghb.transform(this.stretchMatrix);
@@ -167,11 +183,19 @@ export class Object3d {
   };
 
   getNormal(): Vector3 {
-    const polygon = this.polygons?.find(
-      (polygon) => polygon.id === this.polygonScaleId
-    );
+    let polygon: PolygonsRefNodes | undefined;
+    if (this.polygonScaleId) {
+      polygon = this.polygons?.find(
+        (polygon) => polygon.id === this.polygonScaleId
+      );
+    } else {
+      polygon = this.polygons?.find(
+        (polygon) => polygon.axis === this.polygonAxisId
+      );
+    }
     if (!polygon) throw new Error('Polygon not found');
     this.polygonToScale = polygon;
+    // INFO: get first 3 points of the polygon
     const [a, b, c] = Object.keys(polygon.nodesHash);
 
     const aVector2 = polygon.nodesHash[a].clone().slice(0, 3);
@@ -185,8 +209,9 @@ export class Object3d {
     const ba = bVector.subtract(aVector);
 
     const ca = cVector.subtract(aVector);
-    const normal = ba.cross(ca);
-    return normal.normalize();
+    const normal = ca.cross(ba).normalize();
+
+    return normal;
   }
 
   rotateCamera(rotInput: number) {
@@ -273,6 +298,7 @@ export class Object3d {
       return memo;
     }, {});
 
+  // TODO: to delete?
   setAxisDistances() {
     this.getPolygonDistance();
   }
@@ -299,10 +325,6 @@ export class Object3d {
           [key]: distance,
         };
       }
-    }
-    if (this.distanceByAxis !== undefined) {
-      // INFO: the distance subject observable should be updated here
-      // but the zone is not working at this time
     }
   }
 
@@ -352,9 +374,14 @@ export class Object3d {
 
     const nodesVector: VectorHash = this.convertToVect4(nodes);
 
+    // INFO: The order of the polygons is important for choosing the correct normal
+    // the first polygon to appear is the one that will be translated
+    // see groupBy() method for more info
+    // TODO: this is a temporary solution, need to find a better way to do this
+    // i was trying to avoid to add more "control structures" and also the hash weight, but ...
     const polygonObjects: PolygonCubeObj[] = [
-      { id: '0', points: [0, 1, 2, 3], opositeFace: '2', axis: 'z' },
       { id: '2', points: [4, 7, 6, 5], opositeFace: '0', axis: 'z' },
+      { id: '0', points: [0, 1, 2, 3], opositeFace: '2', axis: 'z' },
       { id: '1', points: [1, 5, 6, 2], opositeFace: '3', axis: 'x' },
       { id: '3', points: [0, 3, 7, 4], opositeFace: '1', axis: 'x' },
       { id: '4', points: [0, 4, 5, 1], opositeFace: '5', axis: 'y' },

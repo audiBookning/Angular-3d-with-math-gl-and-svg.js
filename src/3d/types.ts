@@ -84,3 +84,15 @@ export interface ClickObservable {
 export interface EasingHash {
   [key: string]: Easing;
 }
+
+// Component
+
+export interface DistanceInputs {
+  id?: string;
+  axis: string;
+  scale: number;
+  // distances
+  x?: number;
+  y?: number;
+  z?: number;
+}

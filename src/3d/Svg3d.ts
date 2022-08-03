@@ -22,6 +22,7 @@ import { Object3d } from './Object3d';
 import {
   ClickObservable,
   DisplayPolygonsRefNodes,
+  DistanceInputs,
   EasingHash,
   Object3DInput,
   PolygonDistByAxis,
@@ -42,11 +43,6 @@ export class Svg3D {
 
   private polygonTemp: DisplayPolygonsRefNodes[] = [];
   private ispinningFlag: boolean = false;
-
-  // Popmotion
-  private playback: {
-    stop: () => void;
-  } | null = null;
 
   private lastStep: number = 0;
 
@@ -70,10 +66,11 @@ export class Svg3D {
     //{'cubicBezier': cubicBezier},
   ];
   clickObservable: Subject<ClickObservable | undefined>;
+  // INFO: requestAnimationFrame id used to avoid memory leaks
   requestAFID: number | undefined;
   animateCameraDegree: number | undefined;
 
-  //
+  // stream the uppdated distance of the faces of the polygons
   distanceByaxisObservable: Subject<PolygonDistByAxis> =
     new Subject<PolygonDistByAxis>();
 
@@ -185,46 +182,51 @@ export class Svg3D {
 
   animatePop = ({
     duration,
-    scale,
     tween = 'linear',
-    poligonId = '1',
+    //scale,
+    //poligonId = '1',
+    distanceInputs,
   }: {
     duration: number;
-    scale: number;
     tween: string;
-    poligonId?: string;
+    //scale: number;
+    //poligonId?: string;
+    distanceInputs: DistanceInputs;
   }) => {
     if (!this.obj3d) throw new Error('No obj3d found');
-    this.obj3dReset();
     //
-    this.lastStep = this.obj3d.scaleX;
-    const beginScale = this.obj3d.scaleX;
+
     const easing: Easing = this.tweens[
       tween as keyof EasingHash[]
     ] as unknown as Easing;
 
     //
 
-    this.obj3d.polygonScaleId = poligonId;
-    this.obj3d.polygonScaleNormal = this.obj3d.getNormal();
+    const polygonId = distanceInputs.id;
+    this.obj3d.polygonScaleId = polygonId;
+    const axix = distanceInputs.axis;
+    this.obj3d.polygonAxisId = axix;
+
+    const from = distanceInputs[axix as keyof DistanceInputs] as number;
+    const to = distanceInputs.scale;
+    this.lastStep = from;
 
     this.zone.run(() => {
-      this.playback = animate({
-        from: 1,
-        to: scale,
-        duration: duration * 100,
-        ease: easing,
+      animate({
+        from: from,
+        to: to,
+        duration: duration * 5,
+        //ease: easing,
         //repeat: 2,
         //repeatDelay: 200,
         onUpdate: (latest: number) => {
           this.ispinningFlag = true;
-          //const step = latest / this.lastStep;
+
           const step = latest - this.lastStep;
-          if (poligonId) {
-            this.obj3d.setPoligonScale(step);
-          } else {
-            this.obj3d.scaleX = step;
-          }
+
+          if (step === 0) return;
+          this.obj3d.setPoligonScale(step);
+
           this.obj3d.getPolygonDistance();
           // INFO: The subject observable must be called in the zone or inside a DI class?
           if (this.obj3d.distanceByAxis)
