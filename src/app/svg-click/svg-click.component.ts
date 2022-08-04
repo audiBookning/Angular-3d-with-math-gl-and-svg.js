@@ -152,7 +152,8 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
 
   // TODO: could animate and lerp the camera settings instead of setting them directly
   resetCameraSettings() {
-    this.svg3D.obj3d.setCameraDefaults();
+    // TODO: camera should be private
+    this.svg3D.obj3d.camera.setCameraDefaults();
     this.svg3D.updateCameraAndRender({});
   }
 

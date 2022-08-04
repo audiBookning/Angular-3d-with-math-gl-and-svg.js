@@ -13,15 +13,13 @@ import {
   Easing,
   linear,
 } from 'popmotion';
-import { BehaviorSubject, map, ReplaySubject, Subject, tap } from 'rxjs';
+import { Subject } from 'rxjs';
 
 import { Injectable, NgZone } from '@angular/core';
-import { Vector3 } from '@math.gl/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
 import { Object3d } from './Object3d';
 import {
-  CameraSettings,
   CameraSettingsInputs,
   ClickObservable,
   DisplayPolygonsRefNodes,
@@ -86,8 +84,9 @@ export class Svg3D {
     this.clickObservable = new Subject<ClickObservable | undefined>();
   }
 
+  // TODO: refactor
   getCameraObservable() {
-    return this.obj3d.cameraObservable;
+    return this.obj3d.camera.cameraObservable;
   }
 
   // INFO: set some properties of the obj3d
@@ -228,7 +227,8 @@ export class Svg3D {
     if (!this.animateCameraDegree)
       throw new Error('No animateCameraDegree found');
 
-    this.obj3d.rotateCamera(this.animateCameraDegree);
+    // TODO: refactor
+    this.obj3d.camera.rotateCamera(this.animateCameraDegree);
 
     this.updateAndRender();
     this.requestAFID = requestAnimationFrame(this.animateCameraRequest);
@@ -239,7 +239,8 @@ export class Svg3D {
   */
 
   updateCameraAndRender(settings: CameraSettingsInputs) {
-    this.obj3d.updateCameraSettings(settings);
+    // TODO: refactor
+    this.obj3d.camera.updateCameraSettings(settings);
     this.updateAndRender();
   }
 
