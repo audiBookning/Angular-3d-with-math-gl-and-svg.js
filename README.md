@@ -1,6 +1,7 @@
 # Angular 3d basic samples code with Math-gl
 
 Just some basic 3D cubes with animations to try out the technology with angular.
+This repo would be what i call scratchpad code.
 
 Uses
 
@@ -18,20 +19,29 @@ Uses
 
   ## Notes
 
+  This last commit has done some refactoring, added more interactivity and features but it also introduced several weird bugs. Much refactoring must be done. This case shows well the disadvantages of spaghetti code. As always it is the price of laziness.
+
   Based on the code at [Sample-3D-cube
   ](https://github.com/audiBookning/Sample-3D-cube)
 
   Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein, much work has to be done.
 
-  Refactoring is dearly needed. Not only because of performance but the code, in trying to be simpler and avoid too much abstraction, is also beginning to be too specific and reminds more of spaguety than anything else
+  Refactoring is dearly needed. Not only because of performance but the code, in trying to be simpler and avoid too much abstraction, is also beginning to be too specific and reminds more of spaghetti than anything else
+
+  ## Goals
+
+  I will take advantage that i have some time to learn an experiment here and there. I also have soe potencial aplications for this code.
+
+  In this case i do not want to learn in a safe (fenced) environment, so the code will be for the most part illegible.
+
+  If i continue with this and manage, in the latter phases, to get something minimally useful for anyone, i will let this code stay public.
 
   ## TODO:
 
   - distanceByAxis not being updated when stretching
-  - scale and scale\* not being updated or used correctly
   - stretchMatrix the same...
   - polygons, nodesHash the same...
-  - some poligons are not rendered correctly at some times because of the random color generated are not correct. Sometimes they only have 4 digits instead of 6
+  - some poligons are not rendered correctly at some times because of the random colors generated are not correct. Sometimes they only have 4 digits instead of 6
 
   ## Svg3D and Object3d
 

@@ -1,0 +1,39 @@
+.row {
+  display: flex;
+}
+
+.column {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.svgDiv{
+  flex: 0,0,380px;
+  margin-top: 40px 0;
+}
+
+/* ----------- */
+
+hr.solid {
+  border-top: 3px solid #bbb;
+}
+
+/* ------ */
+.margin10{
+  margin-top: 10px;
+}
+
+.margin40{
+  margin-top: 80px;
+}
+
+
+/* ------ */
+.ngx-slider{
+
+  width: 130px;
+}
+
+.sliderInput{
+  width: 100px;
+}

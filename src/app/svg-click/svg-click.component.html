@@ -1,54 +1,282 @@
-<span>Showing stretching animation and polygon click subscription</span>
-<div>
-  <span>length: {{ distanceInputs.x | number: "1.0-2" }}, </span>
-  <span>width: {{ distanceInputs.y | number: "1.0-2" }}, </span>
-  <span>thickness: {{ distanceInputs.z | number: "1.0-2" }}</span>
-</div>
-<div>
-  <br />
-  <label>
-    Animations
-    <select [(ngModel)]="selectedTween">
-      <option *ngFor="let s of tweens" [ngValue]="s">
-        {{ s }}
-      </option>
-    </select>
-  </label>
-  <button (click)="beginAnimation()">Begin</button>
-</div>
-<div>clicked: {{ distanceInputs.axis }}</div>
-<label for="xvalue">length: </label>
-<input
-  type="text"
-  name="xvalue"
-  id="xvalue"
-  size="5"
-  placeholder="x value"
-  (focus)="saveValue($event)"
-  (blur)="processChange($event, 'x')"
-  [ngModel]="distanceInputs.x | number: '1.0-2'"
-/>
-<label for="yvalue">width: </label>
-<input
-  type="text"
-  name="yvalue"
-  id="yvalue"
-  size="5"
-  placeholder="y value"
-  (focus)="saveValue($event)"
-  (blur)="processChange($event, 'y')"
-  [ngModel]="distanceInputs.y | number: '1.0-2'"
-/>
-<label for="zvalue">thickness: </label>
-<input
-  type="text"
-  name="zvalue"
-  id="zvalue"
-  size="5"
-  placeholder="z value"
-  (focus)="saveValue($event)"
-  (blur)="processChange($event, 'z')"
-  [ngModel]="distanceInputs.z | number: '1.0-2'"
-/>
+<div class="row">
+  <div class="svgDiv">
+    <span>Showing stretching animation and polygon click subscription</span>
+    <div #svgParent class="svgParentElement margin40"></div>
+  </div>
+  <div class="column">
+    <div class="row">
+      <div class="column">
+        <label>
+          Animations
+          <select [(ngModel)]="selectedTween">
+            <option *ngFor="let s of tweens" [ngValue]="s">
+              {{ s }}
+            </option>
+          </select>
+        </label>
+      </div>
+      <div class="column">clicked: {{ polygonDistanceInputs?.axis }}</div>
+    </div>
+    <hr class="solid" />
 
-<div #svgParent class="svgParentElement"></div>
+    <div class="row">
+      <div class="column">
+        <label for="xvalue">length: </label>
+        <input
+          class="sliderInput"
+          type="number"
+          name="xvalue"
+          id="xvalue"
+          size="5"
+          placeholder="x value"
+          (focus)="saveValue($event)"
+          (blur)="processChange($event, 'x')"
+          [ngModel]="polygonDistanceInputs?.x | number: '1.0-2'"
+        />
+      </div>
+      <div class="column">
+        <label for="yvalue">width: </label>
+        <input
+          class="sliderInput"
+          type="number"
+          name="yvalue"
+          id="yvalue"
+          size="5"
+          placeholder="y value"
+          (focus)="saveValue($event)"
+          (blur)="processChange($event, 'y')"
+          [ngModel]="polygonDistanceInputs?.y | number: '1.0-2'"
+        />
+      </div>
+      <div class="column">
+        <label for="zvalue">thickness: </label>
+        <input
+          class="sliderInput"
+          type="number"
+          name="zvalue"
+          id="zvalue"
+          size="5"
+          placeholder="z value"
+          (focus)="saveValue($event)"
+          (blur)="processChange($event, 'z')"
+          [ngModel]="polygonDistanceInputs?.z | number: '1.0-2'"
+        />
+      </div>
+    </div>
+    <hr class="solid" />
+    <!-- ----------SLIDER------------ -->
+    <div class="column">
+      Camera: The visualization is not correct because the svg image is always
+      being centered on the screen.
+      <div>
+        <label for="toggle-scale">
+          <input
+            type="checkbox"
+            id="toggle-scale"
+            name="toggle-scale"
+            value="true"
+            [checked]="autoscale"
+            (change)="toggleAutoScale($event.target)"
+          />
+          toggle auto scale
+        </label>
+        <label for="toggle-scale">
+          <input
+            type="checkbox"
+            id="toggle-scale"
+            name="toggle-scale"
+            value="true"
+            [checked]="autoscale"
+            (change)="toggleAutoCenter($event.target)"
+          />
+          toggle auto center
+        </label>
+        <button (click)="resetCameraSettings()">Reset camera</button>
+      </div>
+      <br />
+      <div class="margin10">
+        center: Where the camera is looking at (Yaw, Pitch).
+      </div>
+
+      <div class="row">
+        <div class="column">
+          <p>
+            X:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.center.x"
+              (ngModelChange)="sliderInputCamera($event, 'x', 'center')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.center.x"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'x', 'center')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Y:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.center.y"
+              (ngModelChange)="sliderInputCamera($event, 'x', 'center')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.center.y"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'y', 'center')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Z:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.center.z"
+              (ngModelChange)="sliderInputCamera($event, 'x', 'center')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.center.z"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'z', 'center')"
+          ></ngx-slider>
+        </div>
+      </div>
+      <div>eye: Where the camera is located.</div>
+      <div class="row">
+        <div class="column">
+          <p>
+            X:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.eye.x"
+              (ngModelChange)="sliderInputCamera($event, 'x', 'eye')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.eye.x"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'x', 'eye')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Y:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.eye.y"
+              (ngModelChange)="sliderInputCamera($event, 'y', 'eye')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.eye.y"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'y', 'eye')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Z:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.eye.z"
+              (ngModelChange)="sliderInputCamera($event, 'z', 'eye')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.eye.z"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'z', 'eye')"
+          ></ngx-slider>
+        </div>
+      </div>
+      <div>up: The up direction of the camera (Roll ).</div>
+      <div class="row">
+        <div class="column">
+          <p>
+            X:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.up.x"
+              (ngModelChange)="sliderInputCamera($event, 'x', 'up')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.up.x"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'x', 'up')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Y:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.up.y"
+              (ngModelChange)="sliderInputCamera($event, 'y', 'up')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.up.y"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'y', 'up')"
+          ></ngx-slider>
+        </div>
+        <div class="column">
+          <p>
+            Z:
+            <input
+              class="sliderInput"
+              type="number"
+              [step]="sliderOptions.step"
+              [min]="sliderOptions.floor"
+              [max]="sliderOptions.ceil"
+              [ngModel]="cameraSettings.up.z"
+              (ngModelChange)="sliderInputCamera($event, 'z', 'up')"
+            />
+          </p>
+          <ngx-slider
+            [value]="cameraSettings.up.z"
+            [options]="sliderOptions"
+            (userChange)="sliderCameraChange($event, 'z', 'up')"
+          ></ngx-slider>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

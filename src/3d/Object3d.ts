@@ -1,4 +1,4 @@
-import { Subject } from 'rxjs';
+import { BehaviorSubject, ReplaySubject, Subject } from 'rxjs';
 
 import { Injectable } from '@angular/core';
 import {
@@ -11,11 +11,14 @@ import {
 
 import { SCALEDefaultCONSTANT } from './constants';
 import {
+  CameraSettings,
+  CameraSettingsInputs,
   Cube3d,
   NodeHash,
   Object3DInput,
   PolygonCubeObj,
   PolygonDistByAxis,
+  PolygonsByaxis,
   PolygonsRefNodes,
   VectorHash,
 } from './types';
@@ -24,11 +27,16 @@ import {
   providedIn: 'root',
 })
 export class Object3d {
+  defaultCameraSettings: CameraSettingsInputs = {
+    eye: new Vector3([1, 1, 1]),
+    center: new Vector3([0, 0, 0]),
+    up: new Vector3([0, 1, 0]),
+  };
   // Math.gl
   // pseudo constants as long as the camera is not changed
   private fullTransformMatrix!: Matrix4;
   private perspectiveMatrix: Matrix4 | undefined;
-  private rotateXMatrix: Matrix4 | undefined;
+  public rotateXMatrix: Matrix4 | undefined;
   private stretchMatrix!: Matrix4;
   private fovy: number = Math.PI * 0.5;
 
@@ -41,9 +49,9 @@ export class Object3d {
   public distanceByAxis: PolygonDistByAxis | undefined;
 
   // Camera
-  private cameraInitialPosition!: Vector3;
+
   private cameraLookAt!: Vector3;
-  private cameraUpDirection!: Vector3;
+
   // TODO: Should be merged on a single object?
   private polygonScaleId: string | undefined;
   private polygonToScale: PolygonsRefNodes | undefined;
@@ -58,18 +66,19 @@ export class Object3d {
   public set polygonScaleNormal(value: Vector3) {
     this._polygonScaleNormal = value;
   }
-  // **
-  private _cameraCurrentPosition!: Vector3;
-  public get cameraCurrentPosition(): Vector3 {
-    return this._cameraCurrentPosition;
+  // Camera
+  private _cameraObject: CameraSettings | undefined;
+  public get cameraObject(): CameraSettings {
+    if (!this._cameraObject) throw new Error('Camera not initialized');
+    return this._cameraObject;
   }
-  public set cameraCurrentPosition(value: Vector3) {
-    this._cameraCurrentPosition = value;
+  public set cameraObject(value: CameraSettings) {
+    this._cameraObject = value;
     this.setFullTransformMatrix();
+    this.cameraObservable.next(this._cameraObject);
   }
 
-  // TODO: delete all the scale props?
-  // Cube
+  cameraObservable: BehaviorSubject<CameraSettings>;
 
   // **
 
@@ -81,18 +90,35 @@ export class Object3d {
   // **************************
   constructor() {
     this.setRotationRadians(0);
+    this.cameraObservable = new BehaviorSubject<CameraSettings>({
+      eye: new Vector3([1, 1, 1]),
+      center: new Vector3([0, 0, 0]),
+      up: new Vector3([0, 1, 0]),
+    });
   }
 
-  private setInitialcameraPosition = () => {
-    // Point the camera is looking at
-    this.cameraLookAt = new Vector3([0, 0, 0]);
-    // Initial position of the camera
-    this.cameraInitialPosition = new Vector3([1, 1, 1]);
-    // Current position of the camera
-    this._cameraCurrentPosition = this.cameraInitialPosition.clone();
+  testObsCamera() {
+    this.cameraObservable.next(this.cameraObject);
+    //requestAnimationFrame(this.testObsCamera);
+  }
 
-    this.cameraUpDirection = new Vector3([0, 1, 0]);
-  };
+  private setPerspectiveAndCameraMatrix() {
+    this.perspectiveMatrix = new Matrix4().orthographic({
+      fovy: this.fovy,
+      aspect: 1,
+      near: 0,
+      far: 1,
+    });
+    this.setCameraDefaults();
+  }
+
+  setCameraDefaults() {
+    this.cameraObject = {
+      eye: new Vector3([1, 1, 1]),
+      center: new Vector3([0, 0, 0]),
+      up: new Vector3([0, 1, 0]),
+    };
+  }
 
   public setInitValues({
     scale = [1, 1, 1],
@@ -106,27 +132,25 @@ export class Object3d {
 
     if (rotation) this.setRotationRadians(rotation);
 
-    this.setInitialcameraPosition();
     this.initMathsAnd3D();
     this.stretch3dObject();
 
     this.updatePolygonDistance();
+
+    this.cameraObservable.next(this.cameraObject);
   }
 
   private initMathsAnd3D() {
-    // INFO: Math.gl performance config. Doesn't seem to do much in this case.
+    // INFO: Math.gl performance config. Doesn't seem to do much in this basic case.
     glConfigure({ debug: false });
-    // INFO: Since the camera isn't moving, we can use the same perspective matrix
-    // for all the polygons and transformations (rotation, ...). This is a performance optimization.
-    this.setPerspectiveMatrix();
-    this.setFullTransformMatrix();
+
+    this.setPerspectiveAndCameraMatrix();
 
     const { points, polygons } = this.generateCube();
     this.nodesHash = points;
-    const defaultScale = [1, 1, 1];
-
-    this.stretchMatrix = new Matrix4().scale(defaultScale);
     this.polygons = polygons;
+
+    this.stretchMatrix = new Matrix4().scale([1, 1, 1]);
   }
 
   /*
@@ -141,13 +165,13 @@ export class Object3d {
     this.polygonAxisId = axis;
   }
 
-  public updatePolygonsSaleAndDistance(scale: number) {
-    this.setPoligonScale(scale);
+  public updatePolygonsScaleAndDistance(scale: number) {
+    this.transformPoligonByScale(scale);
 
     this.updatePolygonDistance();
   }
 
-  private setPoligonScale = (scale2: number) => {
+  private transformPoligonByScale = (scale2: number) => {
     if (!this.nodesHash) throw new Error('nodesHash is undefined');
 
     this.getPolygonNormal();
@@ -195,12 +219,41 @@ export class Object3d {
     return normal;
   }
 
+  // INFO: Update the distance of the opposite polygons
+  public updatePolygonDistance() {
+    if (!this.nodesHash) throw new Error('nodesHash is undefined');
+    if (!this.polygons) throw new Error('Polygons not found');
+
+    const polygonsByaxis: PolygonsByaxis = this.groupBy(
+      this.polygons,
+      (x: PolygonsRefNodes) => x.axis
+    );
+
+    for (let [key, value] of Object.entries(polygonsByaxis)) {
+      if (Object.prototype.hasOwnProperty.call(polygonsByaxis, key)) {
+        const opositeFaces = value;
+        const pointAId = opositeFaces[0].order[0];
+        const pointBId = opositeFaces[1].order[0];
+        const pointA = this.nodesHash[pointAId];
+        const pointB = this.nodesHash[pointBId];
+        const distance = pointA.distanceTo(pointB);
+
+        this.distanceByAxis = {
+          ...this.distanceByAxis,
+          [key]: distance,
+        };
+      }
+    }
+  }
+
   /*
     CAMERA
   */
   public rotateCamera(rotInput: number) {
+    if (!this.perspectiveMatrix || !this._cameraObject)
+      throw new Error('Perspective matrix not initialized');
     const origin = this.cameraLookAt;
-    const rotationVector = this.cameraCurrentPosition;
+    const rotationVector = this._cameraObject.eye;
 
     const radians = toRadians(rotInput);
     const newCameraPosition = rotationVector.rotateY({
@@ -208,9 +261,26 @@ export class Object3d {
       origin,
     });
 
-    this.cameraCurrentPosition = newCameraPosition;
+    //this._cameraObject.eye = newCameraPosition;
+    this.updateCameraSettings({ eye: newCameraPosition });
   }
 
+  updateCameraSettings({ eye, center, up }: CameraSettingsInputs) {
+    //
+    if (!this._cameraObject)
+      throw new Error('Perspective matrix not initialized');
+
+    this.cameraObject = {
+      ...this._cameraObject,
+      ...(eye && { eye }),
+      ...(center && { center }),
+      ...(up && { up }),
+    };
+  }
+
+  /*
+    Transform Objects
+  */
   // INFO: Rotate the 3d object
   public rotatePolygon() {
     if (this.rotateXMatrix === undefined) {
@@ -232,38 +302,16 @@ export class Object3d {
     }
   }
 
-  // INFO: Update the distance of the opposite polygons
-  public updatePolygonDistance() {
-    if (!this.nodesHash) throw new Error('nodesHash is undefined');
-    if (!this.polygons) throw new Error('Polygons not found');
-
-    const polygonsByaxis = this.groupBy(
-      this.polygons,
-      (x: PolygonsRefNodes) => x.axis
-    );
-
-    for (const key in polygonsByaxis) {
-      if (Object.prototype.hasOwnProperty.call(polygonsByaxis, key)) {
-        const opositeFaces = polygonsByaxis[key];
-        const pointAId = opositeFaces[0].order[0];
-        const pointBId = opositeFaces[1].order[0];
-        const pointA = this.nodesHash[pointAId];
-        const pointB = this.nodesHash[pointBId];
-        const distance = pointA.distanceTo(pointB);
-
-        this.distanceByAxis = {
-          ...this.distanceByAxis,
-          [key]: distance,
-        };
-      }
-    }
-  }
-
   /*
     Set transform matrixes
   */
   // Convert Vextor4 to array of 3 numbers
   public getScreenCoordinates(vector: Vector4) {
+    if (!this.fullTransformMatrix)
+      throw new Error('fullTransformMatrix is undefined');
+    if (!this.tempPerformanceVector)
+      throw new Error('tempPerformanceVector is undefined');
+
     const transformV = this.fullTransformMatrix.transform(
       vector,
       this.tempPerformanceVector
@@ -274,25 +322,12 @@ export class Object3d {
   }
 
   private setFullTransformMatrix() {
-    if (!this.perspectiveMatrix)
+    if (!this.perspectiveMatrix || !this._cameraObject)
       throw new Error('Perspective matrix not initialized');
 
-    const lookAt = this.perspectiveMatrix.lookAt({
-      eye: this.cameraCurrentPosition,
-      center: this.cameraLookAt,
-      up: this.cameraUpDirection,
-    });
+    const lookAt = this.perspectiveMatrix.lookAt(this._cameraObject);
 
     this.fullTransformMatrix = lookAt.scale(SCALEDefaultCONSTANT);
-  }
-
-  private setPerspectiveMatrix() {
-    this.perspectiveMatrix = new Matrix4().orthographic({
-      fovy: this.fovy,
-      aspect: 1,
-      near: 0,
-      far: 1,
-    });
   }
 
   /*

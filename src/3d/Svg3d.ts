@@ -13,13 +13,16 @@ import {
   Easing,
   linear,
 } from 'popmotion';
-import { Subject } from 'rxjs';
+import { BehaviorSubject, map, ReplaySubject, Subject, tap } from 'rxjs';
 
 import { Injectable, NgZone } from '@angular/core';
+import { Vector3 } from '@math.gl/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
 import { Object3d } from './Object3d';
 import {
+  CameraSettings,
+  CameraSettingsInputs,
   ClickObservable,
   DisplayPolygonsRefNodes,
   DistanceInputs,
@@ -66,6 +69,7 @@ export class Svg3D {
     //{'cubicBezier': cubicBezier},
   ];
   clickObservable: Subject<ClickObservable | undefined>;
+
   // INFO: requestAnimationFrame id used to avoid memory leaks
   requestAFID: number | undefined;
   animateCameraDegree: number | undefined;
@@ -73,11 +77,17 @@ export class Svg3D {
   // stream the uppdated distance of the faces of the polygons
   distanceByaxisObservable: Subject<PolygonDistByAxis> =
     new Subject<PolygonDistByAxis>();
+  autoScaleFlag: boolean = true;
+  autoCenterFlag: boolean = true;
 
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
     this.obj3dSet();
     this.clickObservable = new Subject<ClickObservable | undefined>();
+  }
+
+  getCameraObservable() {
+    return this.obj3d.cameraObservable;
   }
 
   // INFO: set some properties of the obj3d
@@ -106,14 +116,27 @@ export class Svg3D {
     // like in the rotation example, one can avoid re-calculating the scale
     // This would be good for performance
     // And avoid the wobling animation because of the small changes in the bounding box
-    const tagG = document.getElementsByTagName('g')[0];
+    this.svgGroup?.attr('transform', null);
+    if (!this.autoScaleFlag) return;
 
-    tagG.transform.baseVal.clear();
-    const svgSize = 260;
-    const groupWidth = this.svgGroup?.width();
-    const groupHeigh = this.svgGroup?.height();
-    const scaleafactorW = svgSize / (groupWidth as number);
-    const scaleafactorH = svgSize / (groupHeigh as number);
+    // reset the transform of the svg group
+
+    const getPercent = (size: number, percent: number) =>
+      (size / 100) * percent;
+    const svgW = this.svgDraw?.width() as number;
+    const svgH = this.svgDraw?.height() as number;
+    // TODO: the 80 percent should be a congigurable and  possibly a dynamic value
+    // to avoid for example the 'wobling' animation present in the rotation example
+    // doint these calculations in the svg/2d side should be more performant
+    // but this is getting  more and more complex to avoid edge case situations
+    // better should be to calculate everything right on the camera/3d side
+    const svgWPercent = getPercent(svgW, 80);
+    const svgHPercent = getPercent(svgH, 80);
+
+    const groupWidth = this.svgGroup?.width() as number;
+    const groupHeigh = this.svgGroup?.height() as number;
+    const scaleafactorW = svgWPercent / groupWidth;
+    const scaleafactorH = svgHPercent / groupHeigh;
 
     this.svgGroup?.scale(scaleafactorW, scaleafactorH);
 
@@ -127,6 +150,7 @@ export class Svg3D {
   animateBasic = () => {
     this.zone.run(() => {
       this.ispinningFlag = true;
+      this.obj3d.rotatePolygon();
       this.updateAndRender();
       this.requestAFID = requestAnimationFrame(this.animateBasic);
     });
@@ -148,14 +172,14 @@ export class Svg3D {
   }) => {
     if (!this.obj3d) throw new Error('No obj3d found');
 
-    //
-    const polygonId = distanceInputs.id;
-    const axis = distanceInputs.axis;
-    this.obj3d.updatePolygonsTransformId(polygonId, axis);
-
     const easing: Easing = this.tweens[
       tween as keyof EasingHash[]
     ] as unknown as Easing;
+    //
+    const polygonId = distanceInputs?.id;
+    if (!distanceInputs.axis) throw new Error('No axis found');
+    const axis = distanceInputs.axis;
+    this.obj3d.updatePolygonsTransformId(polygonId, axis);
 
     const from = distanceInputs[axis as keyof DistanceInputs] as number;
     const to = distanceInputs.scale;
@@ -173,9 +197,8 @@ export class Svg3D {
           this.ispinningFlag = true;
           const step = latest - this.lastStep;
           if (step === 0) return;
-          this.obj3d.updatePolygonsSaleAndDistance(step);
+          this.obj3d.updatePolygonsScaleAndDistance(step);
 
-          // INFO: The subject observable must be called in the zone or inside a DI class?
           if (this.obj3d.distanceByAxis)
             this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
 
@@ -190,7 +213,6 @@ export class Svg3D {
           this.lastStep = 0;
         },
       });
-      this.ispinningFlag = true;
     });
   };
 
@@ -198,6 +220,7 @@ export class Svg3D {
   animateCamera = (rotInput: number) => {
     this.ispinningFlag = true;
     this.animateCameraDegree = rotInput;
+    this.obj3d.rotateXMatrix = undefined;
     this.animateCameraRequest();
   };
 
@@ -215,6 +238,11 @@ export class Svg3D {
     RENDER
   */
 
+  updateCameraAndRender(settings: CameraSettingsInputs) {
+    this.obj3d.updateCameraSettings(settings);
+    this.updateAndRender();
+  }
+
   renderBasic() {
     this.ispinningFlag = true;
     this.updateAndRender();
@@ -226,7 +254,6 @@ export class Svg3D {
     if (this.clearSvgFlag) this.svgGroup.clear();
 
     this.polygonTemp = [];
-    this.obj3d.rotatePolygon();
 
     this.sortPolygonArray();
 
@@ -240,7 +267,7 @@ export class Svg3D {
     this.polygonTemp.forEach((polygon, index) => {
       this.drawPolygon(polygon);
     });
-    this.svgGroup.center(150, 150);
+    if (this.autoCenterFlag) this.svgGroup.center(150, 150);
   };
 
   private drawPolygon = (polygonTemp: DisplayPolygonsRefNodes) => {
@@ -271,9 +298,14 @@ export class Svg3D {
           const gh: string | undefined = dataset['data'];
           if (!gh) throw new Error('No data found');
 
-          const tt: ClickObservable = JSON.parse(gh);
+          const clickParsed: ClickObservable = JSON.parse(gh);
 
-          this.clickObservable.next(tt);
+          const clickNext: ClickObservable = {
+            ...clickParsed,
+            polygon: this.svgPolygonHash[clickParsed.id],
+          };
+
+          this.clickObservable.next(clickNext);
         }
       });
 

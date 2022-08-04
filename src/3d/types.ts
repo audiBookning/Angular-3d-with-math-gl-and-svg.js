@@ -1,6 +1,6 @@
 import { Easing } from 'popmotion';
 
-import { Vector4 } from '@math.gl/core';
+import { Vector3, Vector4 } from '@math.gl/core';
 import { Polygon as SvgPolygon } from '@svgdotjs/svg.js';
 
 // 3d
@@ -26,6 +26,12 @@ export interface NodeVector {
   y: number;
   z: number;
   w?: number;
+}
+
+export interface PolygonsByaxis {
+  x?: PolygonsRefNodes[];
+  y?: PolygonsRefNodes[];
+  z?: PolygonsRefNodes[];
 }
 
 export interface PolygonDistByAxis {
@@ -76,6 +82,7 @@ export interface SvgInput {
 }
 
 export interface ClickObservable {
+  polygon?: SvgPolygon;
   id: string;
   axis: string;
 }
@@ -89,10 +96,21 @@ export interface EasingHash {
 
 export interface DistanceInputs {
   id?: string;
-  axis: string;
-  scale: number;
+  axis?: string;
+  scale?: number;
   // distances
   x?: number;
   y?: number;
   z?: number;
+}
+
+export interface CameraSettings {
+  eye: Vector3;
+  center: Vector3;
+  up: Vector3;
+}
+export interface CameraSettingsInputs {
+  eye?: Vector3;
+  center?: Vector3;
+  up?: Vector3;
 }
