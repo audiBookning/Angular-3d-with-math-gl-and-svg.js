@@ -5,9 +5,9 @@ import { Polygons } from './Polygons';
 
 // INFO: This Class should deal with 3d Cubes only
 export class Cube {
-  points!: Points;
+  public points!: Points;
 
-  polygons!: Polygons;
+  public polygons!: Polygons;
 
   constructor() {
     const { points, polygons } = new GenerateCube();

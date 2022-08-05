@@ -26,7 +26,9 @@ export class Polygons {
     this.distanceByaxisObservable.next(value);
   }
 
-  distanceByaxisObservable: BehaviorSubject<PolygonDistByAxis | undefined>;
+  public distanceByaxisObservable: BehaviorSubject<
+    PolygonDistByAxis | undefined
+  >;
 
   public polygonScaleId: string | undefined;
   public polygonAxisId: string | undefined;

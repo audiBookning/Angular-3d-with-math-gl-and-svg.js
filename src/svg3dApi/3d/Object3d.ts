@@ -16,8 +16,8 @@ export class Object3d {
   // Geometries
   private nodesHash: VectorHash | undefined;
 
-  cube!: Cube;
-  projection: Projection;
+  public cube!: Cube;
+  public projection: Projection;
 
   private setRotationRadians(value: number) {
     const rotationRadians = toRadians(value);
@@ -45,10 +45,6 @@ export class Object3d {
 
   public sortPolygonArray() {
     return this.cube.polygons.sortPolygonArray(this.projection);
-  }
-
-  pingObsCamera() {
-    this.projection.camera.pingObsCamera();
   }
 
   /*

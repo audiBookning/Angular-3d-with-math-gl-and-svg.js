@@ -99,42 +99,40 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
 
     // subs
-    this.clickSubscription = this.svg3D.clickObservable.subscribe((data) => {
-      if (!data) return;
+    this.clickSubscription = this.svg3D
+      .getClickObservable()
+      .subscribe((data) => {
+        if (!data) return;
 
-      // reset the last polygon clcked
-      if (this.svgPolygonClicked) {
-        this.svgPolygonClicked.attr({ 'fill-opacity': '1', stroke: null });
-      }
-      if (this.polygonDistanceInputs?.id !== data.id) {
-        // TODO: the stroke tickness should be dynamic based on the polygon size
-        this.svgPolygonClicked = data.polygon;
-        this.svgPolygonClicked?.attr('fill-opacity', '0.4');
-        this.svgPolygonClicked?.attr('stroke', 'black');
+        // reset the last polygon clcked
+        if (this.svgPolygonClicked) {
+          this.svgPolygonClicked.attr({ 'fill-opacity': '1', stroke: null });
+        }
+        if (this.polygonDistanceInputs?.id !== data.id) {
+          // TODO: the stroke tickness should be dynamic based on the polygon size
+          this.svgPolygonClicked = data.polygon;
+          this.svgPolygonClicked?.attr('fill-opacity', '0.4');
+          this.svgPolygonClicked?.attr('stroke', 'black');
 
-        this.polygonDistanceInputs = {
-          ...this.polygonDistanceInputs,
-          id: data.id,
-          axis: data.axis,
-        };
-      } else {
-        this.polygonDistanceInputs = {
-          ...this.polygonDistanceInputs,
-          id: undefined,
-          axis: data.axis,
-        };
-      }
-    });
+          this.polygonDistanceInputs = {
+            ...this.polygonDistanceInputs,
+            id: data.id,
+            axis: data.axis,
+          };
+        } else {
+          this.polygonDistanceInputs = {
+            ...this.polygonDistanceInputs,
+            id: undefined,
+            axis: data.axis,
+          };
+        }
+      });
 
     this.distanceSubscription = this.svg3D
       .getDistanceObs()
       .subscribe((distanceByaxis) => {
         this.polygonDistanceInputs = this.getDistances(distanceByaxis);
       });
-
-    this.svg3D.renderBasic();
-
-    //
 
     this.cameraObs = this.svg3D.getCameraObservable();
 
@@ -143,6 +141,8 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
         this.cameraSettings = cameraSettings;
       }
     );
+
+    this.svg3D.updateCameraAndRender();
     //this.polygonDistanceInputs = this.getDistances();
     this.cd.detectChanges();
   }
@@ -156,14 +156,13 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   toggleAutoScale($target: EventTarget | null) {
     const ischecked = (<HTMLInputElement>$target).checked;
 
-    this.svg3D.autoScaleFlag = ischecked;
-    this.svg3D.updateCameraAndRender({});
+    this.svg3D.toggleAutoScale(ischecked);
   }
+
   toggleAutoCenter($target: EventTarget | null) {
     const ischecked = (<HTMLInputElement>$target).checked;
 
-    this.svg3D.autoCenterFlag = ischecked;
-    this.svg3D.updateCameraAndRender({});
+    this.svg3D.toggleAutoCenter(ischecked);
   }
 
   // INFO: exemple: T === CameraSettings['center']
@@ -197,22 +196,22 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     keyOfCamearSettings: keyof CameraSettingsInputs
   ) {
     const { x, y, z } = this._cameraSettings[keyOfCamearSettings];
-    const centerNumbers = Object.values({
+    const settingsNumbers = Object.values({
       ...{ x, y, z },
       [key]: value,
     });
-    const center = new Vector3(...centerNumbers);
-    this.svg3D.updateCameraAndRender({ [keyOfCamearSettings]: center });
+    const settings = new Vector3(...settingsNumbers);
+    this.svg3D.updateCameraAndRender({ [keyOfCamearSettings]: settings });
   }
 
   getDistances(distanceByaxis?: PolygonDistByAxis) {
     // TODO: refactor
-    const dstByaxis = distanceByaxis;
-    if (!dstByaxis) throw new Error('distanceByaxis is undefined');
 
-    const xdistance = dstByaxis.x || 0;
-    const ydistance = dstByaxis.y || 0;
-    const zdistance = dstByaxis.z || 0;
+    if (!distanceByaxis) throw new Error('distanceByaxis is undefined');
+
+    const xdistance = distanceByaxis.x || 0;
+    const ydistance = distanceByaxis.y || 0;
+    const zdistance = distanceByaxis.z || 0;
 
     return {
       ...this.polygonDistanceInputs,

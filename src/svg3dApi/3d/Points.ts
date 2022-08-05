@@ -3,7 +3,7 @@ import { Vector4 } from '@math.gl/core';
 import { NodeHash, VectorHash } from '../types/types';
 
 export class Points {
-  nodes: VectorHash;
+  public nodes: VectorHash;
   constructor(converted: VectorHash) {
     this.nodes = converted;
   }

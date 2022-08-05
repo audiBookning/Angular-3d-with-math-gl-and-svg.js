@@ -12,9 +12,9 @@ export class Projection {
   private tempPerformanceVector: Vector4 = new Vector4();
   public perspectiveMatrix: Matrix4 | undefined;
   private fovy: number = Math.PI * 0.5;
-  camera: Camera;
-  cameraObs: BehaviorSubject<CameraSettings>;
-  cameraSubscription: Subscription;
+  public camera: Camera;
+  private cameraObs: BehaviorSubject<CameraSettings>;
+  private cameraSubscription: Subscription;
 
   constructor() {
     this.camera = new Camera();
@@ -27,7 +27,7 @@ export class Projection {
     });
   }
 
-  onDestroy() {
+  public onDestroy() {
     if (this.cameraSubscription) this.cameraSubscription.unsubscribe();
   }
 

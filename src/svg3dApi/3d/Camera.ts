@@ -15,8 +15,8 @@ export class Camera {
 
     this.cameraObservable.next(this._cameraObject);
   }
-  cameraObservable: BehaviorSubject<CameraSettings>;
-  cameraDefaults = {
+  public cameraObservable: BehaviorSubject<CameraSettings>;
+  private cameraDefaults = {
     eye: new Vector3([1, 1, 1]),
     center: new Vector3([0, 0, 0]),
     up: new Vector3([0, 1, 0]),
@@ -29,16 +29,11 @@ export class Camera {
     );
   }
 
-  getObsCamera(): BehaviorSubject<CameraSettings> {
+  public getObsCamera(): BehaviorSubject<CameraSettings> {
     return this.cameraObservable;
   }
 
-  pingObsCamera() {
-    this.cameraObservable.next(this.cameraObject);
-    //requestAnimationFrame(this.testObsCamera);
-  }
-
-  setCameraDefaults() {
+  public setCameraDefaults() {
     this.cameraObject = this.cameraDefaults;
   }
 
@@ -58,7 +53,7 @@ export class Camera {
     this.updateCameraSettings({ eye: newCameraPosition });
   }
 
-  updateCameraSettings({ eye, center, up }: CameraSettingsInputs) {
+  public updateCameraSettings({ eye, center, up }: CameraSettingsInputs) {
     //
     if (!this.cameraObject)
       throw new Error('Perspective matrix not initialized');

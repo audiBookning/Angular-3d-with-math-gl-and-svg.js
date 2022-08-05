@@ -47,12 +47,12 @@ export class Svg3D {
 
   private lastStep: number = 0;
 
-  obj3d: Object3d;
+  private obj3d: Object3d;
 
-  resetObj3DInput: Object3DInput | undefined;
+  private resetObj3DInput: Object3DInput | undefined;
 
   // Popmotion
-  tweens: EasingHash[] = [
+  private tweens: EasingHash[] = [
     { linear: linear },
     { easeIn: easeIn },
     { easeOut: easeOut },
@@ -66,16 +66,16 @@ export class Svg3D {
     { anticipate: anticipate },
     //{'cubicBezier': cubicBezier},
   ];
-  clickObservable: Subject<ClickObservable | undefined>;
+  private clickObservable: Subject<ClickObservable | undefined>;
 
   // INFO: requestAnimationFrame id used to avoid memory leaks
-  requestAFID: number | undefined;
-  animateCameraDegree: number | undefined;
+  private requestAFID: number | undefined;
+  private animateCameraDegree: number | undefined;
 
   // stream the uppdated distance of the faces of the polygons
 
-  autoScaleFlag: boolean = true;
-  autoCenterFlag: boolean = true;
+  private autoScaleFlag: boolean = true;
+  private autoCenterFlag: boolean = true;
 
   constructor(private zone: NgZone) {
     this.obj3d = new Object3d();
@@ -86,6 +86,21 @@ export class Svg3D {
   /*
     ABSTRACTIONS
   */
+
+  public getClickObservable() {
+    return this.clickObservable;
+  }
+
+  public toggleAutoCenter(ischecked: boolean): void {
+    this.autoCenterFlag = ischecked;
+    this.updateCameraAndRender({});
+  }
+
+  public toggleAutoScale(ischecked: boolean) {
+    this.autoScaleFlag = ischecked;
+    this.updateCameraAndRender({});
+  }
+
   public getDistanceObs() {
     return this.obj3d.cube.polygons.distanceByaxisObservable;
   }
@@ -101,13 +116,16 @@ export class Svg3D {
   }
 
   // INFO: set some properties of the obj3d
-  obj3dSet({ scale = [1, 1, 1], rotation }: Partial<Object3DInput> = {}) {
+  public obj3dSet({
+    scale = [1, 1, 1],
+    rotation,
+  }: Partial<Object3DInput> = {}) {
     this.resetObj3DInput = { scale, rotation };
     this.obj3d.setInitValues({ scale, rotation });
   }
 
   // INFO: Init the svg object with the HTML element
-  setSVG(
+  public setSVG(
     svg: HTMLElement,
     { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
   ) {
@@ -121,7 +139,7 @@ export class Svg3D {
   }
 
   // INFO: auto scale the svg to fit the screen
-  scaleSvgGroup() {
+  private scaleSvgGroup() {
     // TODO: when the 3d object is not really changing size,
     // like in the rotation example, one can avoid re-calculating the scale
     // This would be good for performance
@@ -157,7 +175,8 @@ export class Svg3D {
     ANIMATE
   */
 
-  animateBasic = () => {
+  // INFO: animate and render the svg, and mae sure to rotate the 3d obj
+  public animateBasic = () => {
     this.zone.run(() => {
       this.ispinningFlag = true;
       this.obj3d.rotateObj();
@@ -226,14 +245,14 @@ export class Svg3D {
   };
 
   // INFO: Animate rotating the camera
-  animateCamera = (rotInput: number) => {
+  public animateCamera = (rotInput: number) => {
     this.ispinningFlag = true;
     this.animateCameraDegree = rotInput;
     this.obj3d.rotateXMatrix = undefined;
     this.animateCameraRequest();
   };
 
-  animateCameraRequest = () => {
+  private animateCameraRequest = () => {
     if (!this.animateCameraDegree)
       throw new Error('No animateCameraDegree found');
 
@@ -248,18 +267,14 @@ export class Svg3D {
     RENDER
   */
 
-  updateCameraAndRender(settings: CameraSettingsInputs) {
+  public updateCameraAndRender(settings?: CameraSettingsInputs) {
     // TODO: refactor
-    this.obj3d.projection.camera.updateCameraSettings(settings);
-    this.updateAndRender();
-  }
-
-  renderBasic() {
     this.ispinningFlag = true;
-    this.updateAndRender();
+    this.updateAndRender(settings);
   }
 
-  private updateAndRender = () => {
+  private updateAndRender = (settings?: CameraSettingsInputs) => {
+    if (settings) this.obj3d.projection.camera.updateCameraSettings(settings);
     if (!this.svgGroup) throw new Error('No obj3d found');
     if (!this.ispinningFlag) return;
     if (this.clearSvgFlag) this.svgGroup.clear();

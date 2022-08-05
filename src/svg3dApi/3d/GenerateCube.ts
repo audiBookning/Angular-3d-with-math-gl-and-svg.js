@@ -4,9 +4,9 @@ import { Polygons } from './Polygons';
 
 // INFO: This Class is just a factory for generating a 3d Cube
 export class GenerateCube {
-  points!: Points;
+  public points!: Points;
 
-  polygons!: Polygons;
+  public polygons!: Polygons;
 
   constructor() {
     this.generateCube();
