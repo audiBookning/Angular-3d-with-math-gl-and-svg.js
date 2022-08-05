@@ -11,13 +11,13 @@ import {
 } from '@angular/core';
 import { Vector3 } from '@math.gl/core';
 
-import { Svg3D } from '../../3d/Svg3d';
+import { Svg3D } from '../../svg3dApi/svg/Svg3d';
 import {
   CameraSettings,
   CameraSettingsInputs,
   DistanceInputs,
   PolygonDistByAxis,
-} from '../../3d/types';
+} from '../../svg3dApi/types/types';
 
 @Component({
   selector: 'app-svg-click',

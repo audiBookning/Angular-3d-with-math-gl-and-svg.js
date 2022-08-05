@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { toRadians } from '@math.gl/core';
 
-import { Svg3D } from '../../3d/Svg3d';
+import { Svg3D } from '../../svg3dApi/svg/Svg3d';
 
 @Component({
   selector: 'app-orbit',

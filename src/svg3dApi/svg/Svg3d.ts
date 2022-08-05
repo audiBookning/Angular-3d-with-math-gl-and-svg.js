@@ -18,7 +18,7 @@ import { Subject } from 'rxjs';
 import { Injectable, NgZone } from '@angular/core';
 import { G, SVG, Svg } from '@svgdotjs/svg.js';
 
-import { Object3d } from './Object3d';
+import { Object3d } from '../3d/Object3d';
 import {
   CameraSettingsInputs,
   ClickObservable,
@@ -30,7 +30,7 @@ import {
   PolygonsRefNodes,
   SvgInput,
   SvgPolygonHash,
-} from './types';
+} from '../types/types';
 
 @Injectable({
   providedIn: 'root',

@@ -5,7 +5,7 @@ import {
   PolygonCubeObj,
   PolygonsRefNodes,
   VectorHash,
-} from './types';
+} from '../types/types';
 
 export class GenerateCube {
   nodes!: NodeHash;

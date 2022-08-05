@@ -7,17 +7,17 @@ import {
   Vector4,
 } from '@math.gl/core';
 
-import { Camera } from './Camera';
-import { SCALEDefaultCONSTANT } from './constants';
-import { GenerateCube } from './GenerateCube';
 import {
   Object3DInput,
   PolygonDistByAxis,
   PolygonsByaxis,
   PolygonsRefNodes,
   VectorHash,
-} from './types';
-import { GroupBy } from './utils';
+} from '../types/types';
+import { SCALEDefaultCONSTANT } from '../utils/constants';
+import { GroupBy } from '../utils/utils';
+import { Camera } from './Camera';
+import { GenerateCube } from './GenerateCube';
 
 @Injectable({
   providedIn: 'root',

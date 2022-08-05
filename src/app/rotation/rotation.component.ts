@@ -6,8 +6,8 @@ import {
   ViewChild,
 } from '@angular/core';
 
-import { Object3d } from '../../3d/Object3d';
-import { Svg3D } from '../../3d/Svg3d';
+import { Object3d } from '../../svg3dApi/3d/Object3d';
+import { Svg3D } from '../../svg3dApi/svg/Svg3d';
 
 @Component({
   selector: 'app-rotation',

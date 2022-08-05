@@ -2,7 +2,7 @@ import { BehaviorSubject } from 'rxjs';
 
 import { toRadians, Vector3 } from '@math.gl/core';
 
-import { CameraSettings, CameraSettingsInputs } from './types';
+import { CameraSettings, CameraSettingsInputs } from '../types/types';
 
 export class Camera {
   private _cameraObject: CameraSettings | undefined;
