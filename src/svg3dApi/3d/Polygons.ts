@@ -1,3 +1,5 @@
+import { BehaviorSubject } from 'rxjs';
+
 import { Matrix4, Vector3, Vector4 } from '@math.gl/core';
 
 import {
@@ -13,7 +15,19 @@ import { Projection } from './Projection';
 
 export class Polygons {
   public polygons!: PolygonsRefNodes[];
-  public distanceByAxis: PolygonDistByAxis | undefined;
+  private _distanceByAxis: PolygonDistByAxis | undefined;
+  public get distanceByAxis(): PolygonDistByAxis {
+    // if (!this._distanceByAxis) throw new Error('No distance by axis found');
+    // TODO: this should not return an emmpty object. _distanceByAxis should not be undefined
+    return this._distanceByAxis || {};
+  }
+  public set distanceByAxis(value: PolygonDistByAxis) {
+    this._distanceByAxis = value;
+    this.distanceByaxisObservable.next(value);
+  }
+
+  distanceByaxisObservable: BehaviorSubject<PolygonDistByAxis | undefined>;
+
   public polygonScaleId: string | undefined;
   public polygonAxisId: string | undefined;
   public polygonToScale: PolygonsRefNodes | undefined;
@@ -30,6 +44,10 @@ export class Polygons {
 
   constructor(polygons: PolygonsRefNodes[]) {
     this.polygons = polygons;
+
+    this.distanceByaxisObservable = new BehaviorSubject<
+      PolygonDistByAxis | undefined
+    >(this._distanceByAxis);
   }
 
   // TODO: should this method be here in this manner?
@@ -140,6 +158,7 @@ export class Polygons {
   // TODO: Refactor - since there is already a reference to the nodes in the polygons
   // there is no need to pass it as a parameter
   // unless this is a static method
+  // or should this be in the Cube class?
   // INFO: Update the distance of the opposite polygons
   public updatePolygonDistance(nodesHash: VectorHash | undefined) {
     if (!nodesHash) throw new Error('nodesHash is undefined');

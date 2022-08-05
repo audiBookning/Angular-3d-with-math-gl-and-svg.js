@@ -32,12 +32,10 @@ export class Object3d {
     this.cube = new Cube();
   }
 
-  // INFO: abstraction
-  public GetDistanceByAxis() {
-    return this.cube.polygons.distanceByAxis;
-  }
+  /*
+    ABSTRACTIONS
+  */
 
-  // INFO: abstraction
   public updatePolygonsTransformId(
     polygonId: string | undefined,
     axis: string
@@ -49,11 +47,13 @@ export class Object3d {
     return this.cube.polygons.sortPolygonArray(this.projection);
   }
 
-  // TODO: refactor - unecessary abstraction
   pingObsCamera() {
     this.projection.camera.pingObsCamera();
   }
 
+  /*
+    ---------
+  */
   public setInitValues({
     scale = [1, 1, 1],
     rotation,
@@ -101,14 +101,13 @@ export class Object3d {
   }
 
   /*
-    Transform Objects
+    TRANSFORM Objects
   */
-  // INFO: Rotate the 3d object
+
   public rotateObj() {
     if (this.rotateXMatrix === undefined) {
       return;
     }
-
     for (const key in this.nodesHash) {
       if (Object.prototype.hasOwnProperty.call(this.nodesHash, key)) {
         this.nodesHash[key] = this.nodesHash[key].transform(this.rotateXMatrix);

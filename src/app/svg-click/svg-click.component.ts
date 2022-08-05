@@ -98,8 +98,6 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
 
-    this.setDistances();
-
     // subs
     this.clickSubscription = this.svg3D.clickObservable.subscribe((data) => {
       if (!data) return;
@@ -128,11 +126,11 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
       }
     });
 
-    this.distanceSubscription = this.svg3D.distanceByaxisObservable.subscribe(
-      (distanceByaxis) => {
-        this.setDistances(distanceByaxis);
-      }
-    );
+    this.distanceSubscription = this.svg3D
+      .getDistanceObs()
+      .subscribe((distanceByaxis) => {
+        this.polygonDistanceInputs = this.getDistances(distanceByaxis);
+      });
 
     this.svg3D.renderBasic();
 
@@ -145,6 +143,8 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
         this.cameraSettings = cameraSettings;
       }
     );
+    //this.polygonDistanceInputs = this.getDistances();
+    this.cd.detectChanges();
   }
 
   // TODO: could animate and lerp the camera settings instead of setting them directly
@@ -194,37 +194,33 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   setCameraSettings<T>(
     value: number,
     key: keyof T,
-    tttt: keyof CameraSettingsInputs
+    keyOfCamearSettings: keyof CameraSettingsInputs
   ) {
-    const { x, y, z } = this._cameraSettings[tttt];
+    const { x, y, z } = this._cameraSettings[keyOfCamearSettings];
     const centerNumbers = Object.values({
       ...{ x, y, z },
       [key]: value,
     });
     const center = new Vector3(...centerNumbers);
-    this.svg3D.updateCameraAndRender({ [tttt]: center });
+    this.svg3D.updateCameraAndRender({ [keyOfCamearSettings]: center });
   }
 
-  setDistances(distanceByaxis?: PolygonDistByAxis) {
+  getDistances(distanceByaxis?: PolygonDistByAxis) {
     // TODO: refactor
-    const dstByaxis = distanceByaxis
-      ? distanceByaxis
-      : this.svg3D.getDistanceByAxis();
+    const dstByaxis = distanceByaxis;
     if (!dstByaxis) throw new Error('distanceByaxis is undefined');
 
     const xdistance = dstByaxis.x || 0;
     const ydistance = dstByaxis.y || 0;
     const zdistance = dstByaxis.z || 0;
 
-    this.polygonDistanceInputs = {
+    return {
       ...this.polygonDistanceInputs,
       scale: xdistance,
       x: xdistance,
       y: ydistance,
       z: zdistance,
     };
-
-    this.cd.detectChanges();
   }
 
   beginAnimation() {
@@ -238,7 +234,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   }
 
   saveValue(e: any) {
-    // TODO: give feedback to the user if the value is not a number
+    // TODO: Validation- give feedback to the user if the value is not a number
     const value = parseFloat(e.target.value.trim());
     if (isNaN(+value)) return;
     this.prevValue = value;
@@ -246,11 +242,10 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
 
   processChange(e: any, axis: string) {
     const value = parseFloat(e.target.value.trim());
-    // TODO: give feedback to the user if the value is not a number
+    // TODO: Validation- give feedback to the user if the value is not a number
     if (isNaN(value)) return;
 
     if (value !== this.prevValue) {
-      // Do some additional processing...
       this.polygonDistanceInputs = {
         ...this.polygonDistanceInputs,
         axis: axis,
@@ -263,7 +258,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.svg3D.svgdestroy();
+    this.svg3D.onDestroy();
     if (this.clickSubscription) {
       this.clickSubscription.unsubscribe();
     }

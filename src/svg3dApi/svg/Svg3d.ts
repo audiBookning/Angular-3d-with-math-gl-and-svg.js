@@ -73,8 +73,7 @@ export class Svg3D {
   animateCameraDegree: number | undefined;
 
   // stream the uppdated distance of the faces of the polygons
-  distanceByaxisObservable: Subject<PolygonDistByAxis> =
-    new Subject<PolygonDistByAxis>();
+
   autoScaleFlag: boolean = true;
   autoCenterFlag: boolean = true;
 
@@ -84,13 +83,16 @@ export class Svg3D {
     this.clickObservable = new Subject<ClickObservable | undefined>();
   }
 
+  /*
+    ABSTRACTIONS
+  */
+  public getDistanceObs() {
+    return this.obj3d.cube.polygons.distanceByaxisObservable;
+  }
+
   // TODO: refactor
   public getCameraObservable() {
     return this.obj3d.projection.camera.cameraObservable;
-  }
-
-  public getDistanceByAxis() {
-    return this.obj3d.GetDistanceByAxis();
   }
 
   public resetCameraSettings() {
@@ -109,7 +111,7 @@ export class Svg3D {
     svg: HTMLElement,
     { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
   ) {
-    this.svgdestroy();
+    this.onDestroy();
 
     this.svgDraw = SVG();
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
@@ -208,9 +210,6 @@ export class Svg3D {
           this.obj3d.updatePolygonsScaleAndDistance(step);
 
           // TODO: refactor
-          const distanceByaxis = this.obj3d.GetDistanceByAxis();
-          if (distanceByaxis)
-            this.distanceByaxisObservable.next(distanceByaxis);
 
           this.updateAndRender();
           this.lastStep = latest;
@@ -331,7 +330,7 @@ export class Svg3D {
   */
 
   // INFO: Cleaning the svg and 3d object
-  svgdestroy() {
+  onDestroy() {
     this.obj3dReset();
     this.ispinningFlag = false;
     this.polygonTemp = [];

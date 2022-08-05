@@ -27,6 +27,6 @@ export class RotationComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.svg3D.svgdestroy();
+    this.svg3D.onDestroy();
   }
 }
