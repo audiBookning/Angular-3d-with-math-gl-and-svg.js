@@ -17,16 +17,18 @@ Uses
 
   > "Simple animation libraries for delightful user interfaces"
 
-  ## Notes
+  ## Random/Rant Notes
 
-  This last commit has done some refactoring, added more interactivity and features but it also introduced several weird bugs. Much refactoring must be done. This case shows well the disadvantages of spaghetti code. As always it is the price of laziness.
+  - This last commit has done some refactoring, added more interactivity and features but it also introduced several weird bugs. Much refactoring must be done. This case shows well the disadvantages of spaghetti code. As always it is the price of laziness.
 
-  Based on the code at [Sample-3D-cube
-  ](https://github.com/audiBookning/Sample-3D-cube)
+  - Based on the code at [Sample-3D-cube
+    ](https://github.com/audiBookning/Sample-3D-cube)
 
-  Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein, much work has to be done.
+  - Althoug this example is very basic, for future performance reasons, most of the code will try to reuse everything it can. Which turns the code pretty illegible. In that same vein, much work has to be done.
 
-  Refactoring is dearly needed. Not only because of performance but the code, in trying to be simpler and avoid too much abstraction, is also beginning to be too specific and reminds more of spaghetti than anything else
+  - Refactoring is dearly needed. Not only because of performance but the code, in trying to be simpler and avoid too much abstraction, is also beginning to be too specific and reminds more of spaghetti than anything else.
+
+  - The more one refactor in OOP, the more dependency injection looks good.s
 
   ## Goals
 

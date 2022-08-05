@@ -1,26 +1,19 @@
-import { Vector4 } from '@math.gl/core';
+import { PolygonsRefNodes, VectorHash } from '../types/types';
+import { Points } from './Points';
+import { Polygons } from './Polygons';
 
-import {
-  NodeHash,
-  PolygonCubeObj,
-  PolygonsRefNodes,
-  VectorHash,
-} from '../types/types';
-
+// INFO: This Class is just a factory for generating a 3d Cube
 export class GenerateCube {
-  nodes!: NodeHash;
-  polygonObjects!: PolygonCubeObj[];
+  points!: Points;
 
-  points!: VectorHash;
-
-  polygons!: PolygonsRefNodes[];
+  polygons!: Polygons;
 
   constructor() {
     this.generateCube();
   }
 
   private generateCube() {
-    this.nodes = {
+    const nodes = {
       '0': {
         x: -1,
         y: 1,
@@ -63,14 +56,14 @@ export class GenerateCube {
       },
     };
 
-    this.points = this.convertToVect4();
+    this.points = Points.convertPointHashToVect4(nodes);
 
     // INFO: The order of the polygons is important for choosing the correct normal
     // the first polygon to appear is the one that will be translated
     // see groupBy() method for more info
     // TODO: this is a temporary solution, need to find a better way to do this
     // i was trying to avoid to add more "control structures" and also the hash weight, but ...
-    this.polygonObjects = [
+    const polygonObjects = [
       { id: '2', points: [4, 7, 6, 5], opositeFace: '0', axis: 'z' },
       { id: '0', points: [0, 1, 2, 3], opositeFace: '2', axis: 'z' },
       { id: '1', points: [1, 5, 6, 2], opositeFace: '3', axis: 'x' },
@@ -79,56 +72,9 @@ export class GenerateCube {
       { id: '5', points: [3, 2, 6, 7], opositeFace: '4', axis: 'y' },
     ];
 
-    this.getNodesReferenceByPolygons();
-  }
-
-  // TODO: Not really needed at this moment. Correct Type anotation should be enough.
-  private convertToVect4(): VectorHash {
-    const pointsHash = this.nodes;
-    const converted: VectorHash = {};
-    Object.keys(pointsHash).forEach(function (key) {
-      const point = Object.values(pointsHash[key]);
-      point.push(0);
-      converted[key] = new Vector4(point);
-    });
-
-    return converted;
-  }
-
-  // Convert polygon array to a PolygonsRefNodes object
-  private getNodesReferenceByPolygons() {
-    const polygons = this.polygonObjects;
-    const nodesVector = this.points;
-    // INFO: iterate over the polygons and get the nodes reference
-    this.polygons = [];
-    for (const key in polygons) {
-      if (Object.prototype.hasOwnProperty.call(polygons, key)) {
-        const polygon = polygons[key];
-
-        const randomColor: string =
-          '#' + Math.floor(Math.random() * 16777215).toString(16);
-
-        const tempPolygon: PolygonsRefNodes = {
-          id: polygon.id,
-          nodesHash: {},
-          color: randomColor,
-          order: polygon.points,
-          zIndex: -200,
-          axis: polygon.axis,
-          opositeFace: polygon.opositeFace,
-        };
-        let zIndex: number = 0;
-
-        polygon.points.forEach((point) => {
-          zIndex += nodesVector[point].z;
-          tempPolygon.nodesHash = {
-            ...tempPolygon.nodesHash,
-            [point]: nodesVector[point],
-          };
-        });
-        tempPolygon.zIndex = zIndex;
-        this.polygons.push(tempPolygon);
-      }
-    }
+    this.polygons = Polygons.getNodesReferenceByPolygons(
+      polygonObjects,
+      this.points.nodes
+    );
   }
 }

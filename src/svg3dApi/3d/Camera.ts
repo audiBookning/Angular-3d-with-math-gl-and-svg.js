@@ -29,6 +29,10 @@ export class Camera {
     );
   }
 
+  getObsCamera(): BehaviorSubject<CameraSettings> {
+    return this.cameraObservable;
+  }
+
   pingObsCamera() {
     this.cameraObservable.next(this.cameraObject);
     //requestAnimationFrame(this.testObsCamera);

@@ -97,7 +97,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
-    this.svg3D.obj3dSet();
+
     this.setDistances();
 
     // subs
@@ -126,9 +126,6 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
           axis: data.axis,
         };
       }
-
-      // TODO: this shouldn't be called in the component
-      //this.svg3D.obj3d.updatePolygonDistance();
     });
 
     this.distanceSubscription = this.svg3D.distanceByaxisObservable.subscribe(
@@ -153,8 +150,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   // TODO: could animate and lerp the camera settings instead of setting them directly
   resetCameraSettings() {
     // TODO: camera should be private
-    this.svg3D.obj3d.camera.setCameraDefaults();
-    this.svg3D.updateCameraAndRender({});
+    this.svg3D.resetCameraSettings();
   }
 
   toggleAutoScale($target: EventTarget | null) {
@@ -210,9 +206,10 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
   }
 
   setDistances(distanceByaxis?: PolygonDistByAxis) {
+    // TODO: refactor
     const dstByaxis = distanceByaxis
       ? distanceByaxis
-      : this.svg3D.obj3d.distanceByAxis;
+      : this.svg3D.getDistanceByAxis();
     if (!dstByaxis) throw new Error('distanceByaxis is undefined');
 
     const xdistance = dstByaxis.x || 0;

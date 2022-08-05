@@ -85,8 +85,17 @@ export class Svg3D {
   }
 
   // TODO: refactor
-  getCameraObservable() {
-    return this.obj3d.camera.cameraObservable;
+  public getCameraObservable() {
+    return this.obj3d.projection.camera.cameraObservable;
+  }
+
+  public getDistanceByAxis() {
+    return this.obj3d.GetDistanceByAxis();
+  }
+
+  public resetCameraSettings() {
+    this.obj3d.projection.camera.setCameraDefaults();
+    this.updateCameraAndRender({});
   }
 
   // INFO: set some properties of the obj3d
@@ -149,7 +158,7 @@ export class Svg3D {
   animateBasic = () => {
     this.zone.run(() => {
       this.ispinningFlag = true;
-      this.obj3d.rotatePolygon();
+      this.obj3d.rotateObj();
       this.updateAndRender();
       this.requestAFID = requestAnimationFrame(this.animateBasic);
     });
@@ -198,8 +207,10 @@ export class Svg3D {
           if (step === 0) return;
           this.obj3d.updatePolygonsScaleAndDistance(step);
 
-          if (this.obj3d.distanceByAxis)
-            this.distanceByaxisObservable.next(this.obj3d.distanceByAxis);
+          // TODO: refactor
+          const distanceByaxis = this.obj3d.GetDistanceByAxis();
+          if (distanceByaxis)
+            this.distanceByaxisObservable.next(distanceByaxis);
 
           this.updateAndRender();
           this.lastStep = latest;
@@ -228,7 +239,7 @@ export class Svg3D {
       throw new Error('No animateCameraDegree found');
 
     // TODO: refactor
-    this.obj3d.camera.rotateCamera(this.animateCameraDegree);
+    this.obj3d.projection.camera.rotateCamera(this.animateCameraDegree);
 
     this.updateAndRender();
     this.requestAFID = requestAnimationFrame(this.animateCameraRequest);
@@ -240,7 +251,7 @@ export class Svg3D {
 
   updateCameraAndRender(settings: CameraSettingsInputs) {
     // TODO: refactor
-    this.obj3d.camera.updateCameraSettings(settings);
+    this.obj3d.projection.camera.updateCameraSettings(settings);
     this.updateAndRender();
   }
 
@@ -254,9 +265,7 @@ export class Svg3D {
     if (!this.ispinningFlag) return;
     if (this.clearSvgFlag) this.svgGroup.clear();
 
-    this.polygonTemp = [];
-
-    this.sortPolygonArray();
+    this.polygonTemp = this.obj3d.sortPolygonArray();
 
     this.drawPolygonArray();
     this.clearSvgFlag = false;
@@ -321,46 +330,6 @@ export class Svg3D {
     +++++++++
   */
 
-  private sortPolygonArray() {
-    // sortAndGetScreen
-    if (!this.obj3d) throw new Error('No obj3d found');
-    if (!this.obj3d.polygons) throw new Error('No polygons found');
-    // INFO: iterate over the polygons and get the screen points and zIndex
-    for (let index = 0; index < this.obj3d.polygons.length; index++) {
-      const ki = this.obj3d.polygons[index] || {};
-
-      const newPolygonsRefNodes: DisplayPolygonsRefNodes = {
-        ...this.getPolygonPoints(ki),
-        color: this.obj3d.polygons[index].color,
-        id: this.obj3d.polygons[index].id,
-        order: this.obj3d.polygons[index].order,
-        axis: this.obj3d.polygons[index].axis,
-        opositeFace: this.obj3d.polygons[index].opositeFace,
-      };
-      this.polygonTemp.push(newPolygonsRefNodes);
-    }
-
-    // sort polygons by zIndex
-    this.polygonTemp = this.polygonTemp.sort((a, b) => {
-      return (a.zIndex || 0) - (b.zIndex || 0);
-    });
-  }
-
-  private getPolygonPoints(
-    polygonHash: PolygonsRefNodes
-  ): Partial<DisplayPolygonsRefNodes> {
-    let zIndex: number = 0;
-
-    const hhhhh = polygonHash.order.flatMap((index) => {
-      const vect = polygonHash.nodesHash[index];
-      const [pointX1, pointY1, PointZ] = this.obj3d.getScreenCoordinates(vect);
-      zIndex += PointZ;
-      return [pointX1, pointY1];
-    });
-
-    return { nodes: hhhhh, zIndex: zIndex };
-  }
-
   // INFO: Cleaning the svg and 3d object
   svgdestroy() {
     this.obj3dReset();
@@ -377,6 +346,7 @@ export class Svg3D {
   }
 
   obj3dReset() {
+    this.obj3d.projection.onDestroy();
     this.obj3d = new Object3d();
     this.obj3dSet();
   }
