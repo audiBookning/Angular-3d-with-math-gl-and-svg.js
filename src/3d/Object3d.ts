@@ -11,26 +11,18 @@ import { Camera } from './Camera';
 import { SCALEDefaultCONSTANT } from './constants';
 import { GenerateCube } from './GenerateCube';
 import {
-  CameraSettingsInputs,
-  Cube3d,
-  NodeHash,
   Object3DInput,
-  PolygonCubeObj,
   PolygonDistByAxis,
   PolygonsByaxis,
   PolygonsRefNodes,
   VectorHash,
 } from './types';
+import { GroupBy } from './utils';
 
 @Injectable({
   providedIn: 'root',
 })
 export class Object3d {
-  defaultCameraSettings: CameraSettingsInputs = {
-    eye: new Vector3([1, 1, 1]),
-    center: new Vector3([0, 0, 0]),
-    up: new Vector3([0, 1, 0]),
-  };
   // Math.gl
   // pseudo constants as long as the camera is not changed
   private fullTransformMatrix!: Matrix4;
@@ -201,7 +193,7 @@ export class Object3d {
     if (!this.nodesHash) throw new Error('nodesHash is undefined');
     if (!this.polygons) throw new Error('Polygons not found');
 
-    const polygonsByaxis: PolygonsByaxis = this.groupBy(
+    const polygonsByaxis: PolygonsByaxis = GroupBy(
       this.polygons,
       (x: PolygonsRefNodes) => x.axis
     );
@@ -274,23 +266,4 @@ export class Object3d {
 
     this.fullTransformMatrix = lookAt.scale(SCALEDefaultCONSTANT);
   }
-
-  /*
-    UTILS - Cube
-  */
-
-  /*
-    UTILS - general
-   */
-  private groupBy = <T>(
-    array: Array<T>,
-    property: (x: T) => string
-  ): { [key: string]: Array<T> } =>
-    array.reduce((memo: { [key: string]: Array<T> }, x: T) => {
-      if (!memo[property(x)]) {
-        memo[property(x)] = [];
-      }
-      memo[property(x)].push(x);
-      return memo;
-    }, {});
 }
