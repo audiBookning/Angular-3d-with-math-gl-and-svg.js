@@ -10,7 +10,7 @@ import {
   PolygonsRefNodes,
   VectorHash,
 } from '../types/types';
-import { GroupBy } from '../utils/utils';
+import { color_generator, GroupBy } from '../utils/utils';
 import { Projection } from './Projection';
 
 export class Polygons {
@@ -199,13 +199,10 @@ export class Polygons {
       if (Object.prototype.hasOwnProperty.call(polygonObjects, key)) {
         const polygon = polygonObjects[key];
 
-        const randomColor: string =
-          '#' + Math.floor(Math.random() * 16777215).toString(16);
-
         const tempPolygon: PolygonsRefNodes = {
           id: polygon.id,
           nodesHash: {},
-          color: randomColor,
+          color: color_generator(),
           order: polygon.points,
           zIndex: -200,
           axis: polygon.axis,

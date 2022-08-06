@@ -26,8 +26,6 @@ import {
   DistanceInputs,
   EasingHash,
   Object3DInput,
-  PolygonDistByAxis,
-  PolygonsRefNodes,
   SvgInput,
   SvgPolygonHash,
 } from '../types/types';
@@ -47,7 +45,7 @@ export class Svg3D {
 
   private lastStep: number = 0;
 
-  private obj3d: Object3d;
+  private obj3d: Object3d | undefined;
 
   private resetObj3DInput: Object3DInput | undefined;
 
@@ -78,9 +76,21 @@ export class Svg3D {
   private autoCenterFlag: boolean = true;
 
   constructor(private zone: NgZone) {
+    this.clickObservable = new Subject<ClickObservable | undefined>();
+  }
+
+  newCube() {
     this.obj3d = new Object3d();
     this.obj3dSet();
-    this.clickObservable = new Subject<ClickObservable | undefined>();
+  }
+
+  // INFO: set some properties of the obj3d
+  public obj3dSet({
+    scale = [1, 1, 1],
+    rotation,
+  }: Partial<Object3DInput> = {}) {
+    this.resetObj3DInput = { scale, rotation };
+    this.obj3d?.setInitValues({ scale, rotation });
   }
 
   /*
@@ -102,26 +112,20 @@ export class Svg3D {
   }
 
   public getDistanceObs() {
-    return this.obj3d.cube.polygons.distanceByaxisObservable;
+    if (!this.obj3d) throw new Error('obj3d is not set');
+
+    return this.obj3d?.cube.polygons.distanceByaxisObservable;
   }
 
   // TODO: refactor
   public getCameraObservable() {
-    return this.obj3d.projection.camera.cameraObservable;
+    if (!this.obj3d) throw new Error('obj3d is not set');
+    return this.obj3d?.projection.camera.cameraObservable;
   }
 
   public resetCameraSettings() {
-    this.obj3d.projection.camera.setCameraDefaults();
+    this.obj3d?.projection.camera.setCameraDefaults();
     this.updateCameraAndRender({});
-  }
-
-  // INFO: set some properties of the obj3d
-  public obj3dSet({
-    scale = [1, 1, 1],
-    rotation,
-  }: Partial<Object3DInput> = {}) {
-    this.resetObj3DInput = { scale, rotation };
-    this.obj3d.setInitValues({ scale, rotation });
   }
 
   // INFO: Init the svg object with the HTML element
@@ -179,7 +183,7 @@ export class Svg3D {
   public animateBasic = () => {
     this.zone.run(() => {
       this.ispinningFlag = true;
-      this.obj3d.rotateObj();
+      this.obj3d?.rotateObj();
       this.updateAndRender();
       this.requestAFID = requestAnimationFrame(this.animateBasic);
     });
@@ -226,7 +230,7 @@ export class Svg3D {
           this.ispinningFlag = true;
           const step = latest - this.lastStep;
           if (step === 0) return;
-          this.obj3d.updatePolygonsScaleAndDistance(step);
+          this.obj3d?.updatePolygonsScaleAndDistance(step);
 
           // TODO: refactor
 
@@ -248,6 +252,7 @@ export class Svg3D {
   public animateCamera = (rotInput: number) => {
     this.ispinningFlag = true;
     this.animateCameraDegree = rotInput;
+    if (!this.obj3d) throw new Error('No obj3d found');
     this.obj3d.rotateXMatrix = undefined;
     this.animateCameraRequest();
   };
@@ -257,7 +262,7 @@ export class Svg3D {
       throw new Error('No animateCameraDegree found');
 
     // TODO: refactor
-    this.obj3d.projection.camera.rotateCamera(this.animateCameraDegree);
+    this.obj3d?.projection.camera.rotateCamera(this.animateCameraDegree);
 
     this.updateAndRender();
     this.requestAFID = requestAnimationFrame(this.animateCameraRequest);
@@ -274,10 +279,11 @@ export class Svg3D {
   }
 
   private updateAndRender = (settings?: CameraSettingsInputs) => {
-    if (settings) this.obj3d.projection.camera.updateCameraSettings(settings);
+    if (settings) this.obj3d?.projection.camera.updateCameraSettings(settings);
     if (!this.svgGroup) throw new Error('No obj3d found');
     if (!this.ispinningFlag) return;
     if (this.clearSvgFlag) this.svgGroup.clear();
+    if (!this.obj3d) throw new Error('No obj3d found');
 
     this.polygonTemp = this.obj3d.sortPolygonArray();
 
@@ -360,7 +366,7 @@ export class Svg3D {
   }
 
   obj3dReset() {
-    this.obj3d.projection.onDestroy();
+    this.obj3d?.projection.onDestroy();
     this.obj3d = new Object3d();
     this.obj3dSet();
   }

@@ -17,6 +17,7 @@ const routes: Routes = [
     loadChildren: () =>
       import('./orbit/orbit.module').then((m) => m.OrbitModule),
   },
+  { path: 'lerp', loadChildren: () => import('./lerp/lerp.module').then(m => m.LerpModule) },
 ];
 
 @NgModule({

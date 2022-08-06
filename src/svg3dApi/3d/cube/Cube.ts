@@ -1,11 +1,12 @@
-import { VectorHash } from '../types/types';
+import { VectorHash } from '../../types/types';
+import { PointsHash } from '../PointsHash';
+import { Polygons } from '../Polygons';
 import { GenerateCube } from './GenerateCube';
-import { Points } from './Points';
-import { Polygons } from './Polygons';
 
 // INFO: This Class should deal with 3d Cubes only
 export class Cube {
-  public points!: Points;
+  // Does the cube need the points as a property?
+  public points!: PointsHash;
 
   public polygons!: Polygons;
 

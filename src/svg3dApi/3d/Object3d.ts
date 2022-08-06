@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { configure as glConfigure, Matrix4, toRadians } from '@math.gl/core';
 
 import { Object3DInput, PolygonsRefNodes, VectorHash } from '../types/types';
-import { Cube } from './Cube';
+import { Cube } from './cube/Cube';
 import { Projection } from './Projection';
 
 // INFO: This Class should deal with 3d objects in general

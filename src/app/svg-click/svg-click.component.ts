@@ -1,6 +1,6 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 
-import { ChangeContext, Options } from '@angular-slider/ngx-slider';
+import { ChangeContext } from '@angular-slider/ngx-slider';
 import {
   AfterViewInit,
   ChangeDetectorRef,
@@ -97,6 +97,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
+    this.svg3D.newCube();
 
     // subs
     this.clickSubscription = this.svg3D
@@ -171,7 +172,6 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     axis: keyof T,
     tttt: keyof CameraSettingsInputs
   ) {
-    //console.log(typeof value);
     // TODO: give feedback to the user if the value is not a number
     if (isNaN(value)) return;
 

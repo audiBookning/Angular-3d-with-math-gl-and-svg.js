@@ -5,7 +5,6 @@ import {
   OnDestroy,
   ViewChild,
 } from '@angular/core';
-import { toRadians } from '@math.gl/core';
 
 import { Svg3D } from '../../svg3dApi/svg/Svg3d';
 
@@ -21,6 +20,7 @@ export class OrbitComponent implements AfterViewInit, OnDestroy {
   constructor(private svg3D: Svg3D) {}
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
+    this.svg3D.newCube();
     this.svg3D.obj3dSet();
 
     this.svg3D.animateCamera(1);

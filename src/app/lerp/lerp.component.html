@@ -1,0 +1,25 @@
+<span>Lerping between two perpendicular lines</span>
+<br />
+<div class="row">
+  <div #svgParent class="svgParentElement column"></div>
+
+  <div class="column">
+    <p>
+      X:
+      <input
+        class="sliderInput"
+        type="number"
+        [step]="sliderOptions.step"
+        [min]="sliderOptions.floor"
+        [max]="sliderOptions.ceil"
+        [ngModel]="lerpSetting"
+        (ngModelChange)="sliderInputCamera($event)"
+      />
+    </p>
+    <ngx-slider
+      [value]="lerpSetting"
+      [options]="sliderOptions"
+      (userChange)="sliderLerpChange($event)"
+    ></ngx-slider>
+  </div>
+</div>

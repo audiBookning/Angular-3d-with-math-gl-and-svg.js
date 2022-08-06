@@ -1,6 +1,6 @@
 import { BehaviorSubject, Subscription } from 'rxjs';
 
-import { Matrix4, Vector4 } from '@math.gl/core';
+import { Matrix4, Vector2, Vector4 } from '@math.gl/core';
 
 import { CameraSettings } from '../types/types';
 import { SCALEDefaultCONSTANT } from '../utils/constants';
@@ -64,8 +64,22 @@ export class Projection {
       vector,
       this.tempPerformanceVector
     );
+    const [x, y, z] = transformV;
 
-    const [x, y, Z] = transformV;
-    return [x, y, Z];
+    return [x, y, z];
+  }
+
+  getInverseScreenCoordinates(vector: number[], z: number) {
+    //
+
+    const inverseMatrix = this.fullTransformMatrix.clone().invert();
+    const [x, y] = vector;
+
+    const transformVm1 = inverseMatrix.transform(
+      [x, y, z, 0],
+      this.tempPerformanceVector
+    );
+
+    return new Vector4(transformVm1);
   }
 }

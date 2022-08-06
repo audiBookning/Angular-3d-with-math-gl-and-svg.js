@@ -1,10 +1,10 @@
-import { PolygonsRefNodes, VectorHash } from '../types/types';
-import { Points } from './Points';
-import { Polygons } from './Polygons';
+import { PolygonsRefNodes, VectorHash } from '../../types/types';
+import { PointsHash } from '../PointsHash';
+import { Polygons } from '../Polygons';
 
 // INFO: This Class is just a factory for generating a 3d Cube
 export class GenerateCube {
-  public points!: Points;
+  public points!: PointsHash;
 
   public polygons!: Polygons;
 
@@ -56,7 +56,7 @@ export class GenerateCube {
       },
     };
 
-    this.points = Points.convertPointHashToVect4(nodes);
+    this.points = PointsHash.convertPointHashToVect4(nodes);
 
     // INFO: The order of the polygons is important for choosing the correct normal
     // the first polygon to appear is the one that will be translated

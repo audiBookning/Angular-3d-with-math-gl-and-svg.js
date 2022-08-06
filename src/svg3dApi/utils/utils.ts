@@ -12,3 +12,10 @@ export const GroupBy = <T>(
     memo[property(x)].push(x);
     return memo;
   }, {});
+
+// REF: https://stackoverflow.com/a/47125303/3658510
+export const color_generator = () =>
+  '#' +
+  Math.round(0x1000000 + 0xffffff * Math.random())
+    .toString(16)
+    .slice(1);
