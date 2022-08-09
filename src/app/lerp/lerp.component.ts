@@ -1,3 +1,5 @@
+import { BehaviorSubject, Subscription } from 'rxjs';
+
 import { ChangeContext } from '@angular-slider/ngx-slider';
 import {
   AfterViewInit,
@@ -30,6 +32,8 @@ export class LerpComponent implements AfterViewInit, OnDestroy {
     ceil: 1,
     step: 0.1,
   };
+  lerpObservable: BehaviorSubject<number> | undefined;
+  lerpSubscription: Subscription | undefined;
 
   constructor(private svg3D: SvgLerp) {
     this.lerpSetting = 0.3;
@@ -37,6 +41,12 @@ export class LerpComponent implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});
     this.svg3D.updateAndRender(this.lerpSetting);
+    this.lerpObservable = this.svg3D.getLerpObservable();
+    this.lerpSubscription = this.lerpObservable.subscribe(
+      (lerpSetting: number) => {
+        this.lerpSetting = lerpSetting;
+      }
+    );
   }
 
   sliderLerpChange<T>(changeContext: ChangeContext) {
@@ -55,5 +65,8 @@ export class LerpComponent implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.svg3D.onDestroy();
+    if (this.lerpSubscription) {
+      this.lerpSubscription.unsubscribe();
+    }
   }
 }

@@ -1,3 +1,5 @@
+import { BehaviorSubject } from 'rxjs';
+
 import { Vector4 } from '@math.gl/core';
 
 import { Line } from '../Line';
@@ -7,12 +9,14 @@ import { Projection } from '../Projection';
 export class LerpLines {
   baseLineA: Line;
   baseLineB: Line;
+  public lerpObservable: BehaviorSubject<number>;
   private _lerpFactor: number;
   public get lerpFactor(): number {
     return this._lerpFactor;
   }
   public set lerpFactor(value: number) {
     this._lerpFactor = value;
+    this.lerpObservable.next(this._lerpFactor);
   }
   private _lerpLine: Line;
   projection: Projection;
@@ -28,6 +32,7 @@ export class LerpLines {
     this._lerpLine = this.getLerpLine(this.lerpFactor);
 
     this.projection = new Projection();
+    this.lerpObservable = new BehaviorSubject<number>(this._lerpFactor);
   }
 
   // Assume 2 parallel lines.

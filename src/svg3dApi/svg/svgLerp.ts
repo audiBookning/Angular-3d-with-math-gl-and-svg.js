@@ -44,6 +44,10 @@ export class SvgLerp {
     this.svgGroup = this.svgDraw.group();
   }
 
+  public getLerpObservable() {
+    return this.obj3d?.lerpObservable;
+  }
+
   public setSVG(
     svg: HTMLElement,
     { svgWidth = 150, svgHeight = 150 }: Partial<SvgInput> = {}
