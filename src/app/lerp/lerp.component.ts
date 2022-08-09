@@ -32,7 +32,7 @@ export class LerpComponent implements AfterViewInit, OnDestroy {
   };
 
   constructor(private svg3D: SvgLerp) {
-    this.lerpSetting = 0.7;
+    this.lerpSetting = 0.3;
   }
   ngAfterViewInit(): void {
     this.svg3D.setSVG(this.svgParent.nativeElement, {});

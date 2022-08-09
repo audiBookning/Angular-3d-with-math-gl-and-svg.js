@@ -144,7 +144,7 @@ export class SvgClickComponent implements AfterViewInit, OnDestroy {
     );
 
     this.svg3D.updateCameraAndRender();
-    //this.polygonDistanceInputs = this.getDistances();
+
     this.cd.detectChanges();
   }
 

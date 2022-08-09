@@ -34,7 +34,6 @@ import {
   providedIn: 'root',
 })
 export class Svg3D {
-  //
   private svgPolygonHash: SvgPolygonHash = {};
   private svgGroup: G | Svg | undefined;
   private clearSvgFlag: boolean = true;
@@ -139,7 +138,6 @@ export class Svg3D {
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
 
     this.svgGroup = this.svgDraw.group();
-    //this.svgGroup = this.svgDraw.nested();
   }
 
   // INFO: auto scale the svg to fit the screen
@@ -193,14 +191,10 @@ export class Svg3D {
   animatePopmotion = ({
     duration,
     tween = 'linear',
-    //scale,
-    //poligonId = '1',
     distanceInputs,
   }: {
     duration: number;
     tween: string;
-    //scale: number;
-    //poligonId?: string;
     distanceInputs: DistanceInputs;
   }) => {
     if (!this.obj3d) throw new Error('No obj3d found');
@@ -208,7 +202,7 @@ export class Svg3D {
     const easing: Easing = this.tweens[
       tween as keyof EasingHash[]
     ] as unknown as Easing;
-    //
+
     const polygonId = distanceInputs?.id;
     if (!distanceInputs.axis) throw new Error('No axis found');
     const axis = distanceInputs.axis;
@@ -224,8 +218,6 @@ export class Svg3D {
         to: to,
         duration: duration * 5,
         ease: easing,
-        //repeat: 2,
-        //repeatDelay: 200,
         onUpdate: (latest: number) => {
           this.ispinningFlag = true;
           const step = latest - this.lastStep;
@@ -361,7 +353,6 @@ export class Svg3D {
     this.clearSvgFlag = true;
     if (this.svgDraw && this.svgGroup) {
       this.svgDraw.remove();
-      //this.svgGroup.remove();
     }
   }
 

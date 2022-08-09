@@ -49,12 +49,10 @@ export class Camera {
       origin,
     });
 
-    //this._cameraObject.eye = newCameraPosition;
     this.updateCameraSettings({ eye: newCameraPosition });
   }
 
   public updateCameraSettings({ eye, center, up }: CameraSettingsInputs) {
-    //
     if (!this.cameraObject)
       throw new Error('Perspective matrix not initialized');
 

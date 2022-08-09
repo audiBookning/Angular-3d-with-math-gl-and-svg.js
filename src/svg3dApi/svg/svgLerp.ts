@@ -1,5 +1,16 @@
+import '@svgdotjs/svg.draggable.js';
+
 import { Injectable } from '@angular/core';
-import { G, SVG, Svg } from '@svgdotjs/svg.js';
+import { Matrix3, Vector4 } from '@math.gl/core';
+import {
+  Box,
+  G,
+  Line as LineSvg,
+  Polygon,
+  Rect,
+  SVG,
+  Svg,
+} from '@svgdotjs/svg.js';
 
 import { LerpLines } from '../3d/lerp/LerpLines';
 import { Line } from '../3d/Line';
@@ -13,37 +24,31 @@ import { color_generator } from '../utils/utils';
 export class SvgLerp {
   private obj3d: LerpLines;
   private projection: Projection;
-  private autoScaleFlag: boolean = true;
-  private autoCenterFlag: boolean = true;
 
-  private svgGroup: G | Svg | undefined;
-  private clearSvgFlag: boolean = true;
-  private svgDraw: Svg | undefined;
+  moveGroup: [number, number] = [0, 0];
+
+  private svgGroup: G | Svg;
+
+  private svgDraw: Svg;
+  constraintBox: Box | undefined;
+  svgPolygon: Polygon | undefined;
+  lines: Line[] | undefined;
+  rectBox: Rect | undefined;
+  svgLerpLine: LineSvg | undefined;
 
   constructor() {
     this.obj3d = LerpLines.generateLerpLine();
     this.projection = new Projection();
+    this.svgDraw = SVG();
+    this.svgDraw.viewbox(-60, -60, 100, 100);
+    this.svgGroup = this.svgDraw.group();
   }
 
   public setSVG(
     svg: HTMLElement,
-    { svgWidth = 300, svgHeight = 300 }: Partial<SvgInput> = {}
+    { svgWidth = 150, svgHeight = 150 }: Partial<SvgInput> = {}
   ) {
-    this.svgDraw = SVG();
     this.svgDraw.addTo(svg).size(svgWidth, svgHeight);
-
-    this.svgGroup = this.svgDraw.group();
-    //this.svgGroup = this.svgDraw.nested();
-  }
-
-  public toggleAutoCenter(ischecked: boolean): void {
-    this.autoCenterFlag = ischecked;
-    this.updateAndRender();
-  }
-
-  public toggleAutoScale(ischecked: boolean) {
-    this.autoScaleFlag = ischecked;
-    this.updateAndRender();
   }
 
   public updateAndRender = (lerpFactor?: number) => {
@@ -51,11 +56,7 @@ export class SvgLerp {
     if (!this.obj3d) throw new Error('No obj3d found');
     if (lerpFactor !== undefined) this.obj3d.lerpFactor = lerpFactor;
 
-    if (this.clearSvgFlag) this.svgGroup.clear();
     this.drawLinesArray();
-    //if (this.autoCenterFlag) this.svgGroup.center(150, 150);
-    //this.clearSvgFlag = false;
-    //this.scaleSvgGroup();
   };
 
   drawPolygon(lines: Line[]) {
@@ -78,80 +79,151 @@ export class SvgLerp {
       return [pointX1, pointY1];
     });
 
-    this.svgGroup?.attr('transform', null);
-    const svgPolygon = this.svgGroup
-      ?.polygon(screenPolygon)
+    this.svgPolygon = this.svgGroup
+      .polygon(screenPolygon)
       .opacity(0.3)
-      // Note: these ever changing random colors are not good for the user experience
+
       .fill(color_generator());
 
-    this.svgGroup.move(100, 100).scale(3);
+    this.constraintBox = this.svgPolygon.bbox();
 
-    svgPolygon?.on('mouseover', (event) => {
-      const ev = event as PointerEvent;
-      if (!this.svgGroup) return;
+    this.svgDraw.viewbox(
+      this.constraintBox.x - 10,
+      this.constraintBox.y - 10,
+      this.constraintBox.width + 10,
+      this.constraintBox.height + 10
+    );
+  }
 
-      const pt = new DOMPointReadOnly(ev.clientX, ev.clientY).matrixTransform(
-        this.svgGroup.node.getScreenCTM()?.inverse()
+  getTransformMatrix(box: Box) {
+    let { x, y } = box;
+    const transconsolidate = this.svgGroup.node.transform.baseVal.consolidate();
+    if (transconsolidate) {
+      const transMatrix = transconsolidate.matrix;
+
+      const pt = new DOMPointReadOnly(x, y).matrixTransform(
+        transMatrix.inverse()
       );
-
-      console.log('mousemove pt', pt.x, pt.y);
-    });
+    }
   }
 
   drawLinesArray() {
-    const lines = this.obj3d.getLines();
-
-    for (const line of lines) {
-      this.drawLine(line);
+    if (!this.lines || this.lines.length === 0) {
+      this.lines = this.obj3d.getBaseLines();
+      for (const line of this.lines) {
+        this.drawLine(line, 'base');
+      }
     }
-    this.drawPolygon(lines);
-    //if (this.autoCenterFlag) this.svgGroup?.center(150, 150);
+
+    if (!this.svgPolygon) this.drawPolygon(this.lines);
+    if (!this.constraintBox) this.constraintBox = this.svgGroup.bbox();
+
+    const lerp = this.obj3d.lerpLine;
+    this.drawLine(lerp, 'lerp');
   }
 
-  drawLine(line: Line) {
+  drawLine(line: Line, type: string) {
     const vects4 = line.getVectors().flatMap((vect) => {
       const [pointX1, pointY1] = this.projection.getScreenCoordinates(vect);
 
       return [pointX1, pointY1];
     });
 
-    this.svgGroup?.line(vects4).stroke({ width: 1, color: color_generator() });
+    if (type !== 'lerp') {
+      const svgLine = SVG()
+        .line(vects4)
+        .stroke({ width: 1, color: color_generator() });
+
+      svgLine.addTo(this.svgGroup);
+      const baseBbox = svgLine.bbox();
+    } else if (!this.svgLerpLine) {
+      this.svgLerpLine = SVG()
+        .line(vects4)
+        .stroke({ width: 1, color: color_generator() });
+
+      const lerpBbox = this.svgLerpLine.bbox();
+
+      if (this.rectBox) this.rectBox.remove();
+      this.rectBox = this.svgGroup.rect(lerpBbox.width, lerpBbox.height);
+      this.rectBox.fill('#f55');
+      this.rectBox.opacity(0.6);
+
+      this.svgLerpLine.addTo(this.svgGroup);
+
+      this.rectBox.x(lerpBbox.x);
+      this.rectBox.y(lerpBbox.y);
+      this.rectBox.after(this.svgLerpLine);
+
+      let boxCache: { x: number; y: number };
+
+      this.rectBox.draggable().on('dragmove', (event) => {
+        event.preventDefault();
+
+        if (!this.constraintBox) throw new Error('No constraintBox found');
+
+        //@ts-ignore
+        const { handler, box }: { handler: any; box: Box } = event.detail;
+        let { x, y } = box;
+
+        if (!this.constraintBox) throw new Error('constraintBox is not set');
+
+        if (x < this.constraintBox.x) {
+          x = this.constraintBox.x;
+        }
+
+        if (box.x2 > this.constraintBox.x2) {
+          x = this.constraintBox.x2 - box.w;
+        }
+
+        if (y < this.constraintBox.y) {
+          y = this.constraintBox.y;
+        }
+
+        if (box.y2 > this.constraintBox.y2) {
+          y = this.constraintBox.y2 - box.h;
+        }
+
+        if (boxCache && boxCache.x === x && boxCache.y === y) return;
+        boxCache = { x, y };
+
+        this.rectBox!.x(x);
+        this.rectBox!.y(y);
+
+        const percent =
+          1 -
+          (y - this.constraintBox.y) / (this.constraintBox.height - box.height);
+
+        handler.move(x, y);
+
+        this.updateAndRender(percent);
+      });
+    } else if (this.svgLerpLine) {
+      this.svgLerpLine.plot(vects4);
+    }
   }
 
-  private scaleSvgGroup() {
-    this.svgGroup?.attr('transform', null);
-    if (!this.autoScaleFlag) return;
+  getLinePointsFromBox(box: Box) {
+    const pointAX = box.x;
+    const pointAY = box.y + box.height;
+    const pointBX = box.x + box.width;
+    const pointBY = box.y;
 
-    const getPercent = (size: number, percent: number) =>
-      (size / 100) * percent;
-    const svgW = this.svgDraw?.width() as number;
-    const svgH = this.svgDraw?.height() as number;
+    const pointA = this.projection.getInverseScreenCoordinates(
+      [pointAX, pointAY],
+      1
+    );
+    const pointB = this.projection.getInverseScreenCoordinates(
+      [pointBX, pointBY],
+      1
+    );
 
-    const svgWPercent = getPercent(svgW, 80);
-    const svgHPercent = getPercent(svgH, 80);
-
-    // TODO: if the width and height are not set, this will give infinity as the scale value
-    const groupWidth = (this.svgGroup?.width() as number) || svgWPercent;
-    const groupHeigh = (this.svgGroup?.height() as number) || svgHPercent;
-
-    const scaleafactorW = svgWPercent / groupWidth;
-    const scaleafactorH = svgHPercent / groupHeigh;
-
-    this.svgGroup?.scale(scaleafactorW, scaleafactorH);
-
-    const viewbox = this.svgDraw?.viewbox();
+    return [pointA, pointB];
   }
 
   onDestroy() {
-    console.log('onDestroy');
     this.obj3dReset();
 
-    this.clearSvgFlag = true;
-    if (this.svgDraw && this.svgGroup) {
-      this.svgDraw.remove();
-      //this.svgGroup.remove();
-    }
+    this.svgDraw.remove();
   }
 
   obj3dReset() {

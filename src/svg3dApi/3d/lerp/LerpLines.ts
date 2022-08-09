@@ -5,7 +5,8 @@ import { Point } from '../Point';
 import { Projection } from '../Projection';
 
 export class LerpLines {
-  baseLines: Line[];
+  baseLineA: Line;
+  baseLineB: Line;
   private _lerpFactor: number;
   public get lerpFactor(): number {
     return this._lerpFactor;
@@ -20,7 +21,9 @@ export class LerpLines {
   }
 
   constructor(baseLines: { line1: Line; line2: Line }) {
-    this.baseLines = Object.values(baseLines);
+    const [baseA, baseB] = Object.values(baseLines);
+    this.baseLineA = baseA;
+    this.baseLineB = baseB;
     this._lerpFactor = 0.8;
     this._lerpLine = this.getLerpLine(this.lerpFactor);
 
@@ -29,30 +32,41 @@ export class LerpLines {
 
   // Assume 2 parallel lines.
   public getDistance() {
-    const [line1] = this.baseLines;
-    const distance = line1.getDistance();
+    const distance = this.baseLineA.getDistance();
     return distance;
   }
 
-  getLines() {
-    const tt = [...this.baseLines, this.lerpLine];
+  public getLines() {
+    const tt = [
+      { line: this.baseLineA, type: 'baseA' },
+      { line: this.baseLineB, type: 'baseB' },
+      { line: this.lerpLine, type: 'lerp' },
+    ];
 
     return tt;
   }
 
+  public getLinesArray() {
+    return [this.baseLineA, this.baseLineB, this.lerpLine];
+  }
+
+  public getBaseLines() {
+    return [this.baseLineA, this.baseLineB];
+  }
+
   // TODO: not needed?
-  getLinesArray() {
-    return [...this.baseLines, this.lerpLine].map((line) => {
+  public getLinesVectors() {
+    return [this.baseLineA, this.baseLineB, this.lerpLine].map((line) => {
       return line.getVectors();
     });
   }
 
-  getLerpLine(lerp: number) {
-    const pointAA = this.baseLines[0].getNodeAt(0).node.clone();
-    const pointAB = this.baseLines[1].getNodeAt(0).node.clone();
+  private getLerpLine(lerp: number) {
+    const pointAA = this.baseLineA.getNodeAt(0).node.clone();
+    const pointAB = this.baseLineB.getNodeAt(0).node.clone();
 
-    const pointBA = this.baseLines[0].getNodeAt(1).node.clone();
-    const pointBB = this.baseLines[1].getNodeAt(1).node.clone();
+    const pointBA = this.baseLineA.getNodeAt(1).node.clone();
+    const pointBB = this.baseLineB.getNodeAt(1).node.clone();
 
     if (lerp === 0) {
       const lerpAPoint = new Point(pointAA);
@@ -60,7 +74,7 @@ export class LerpLines {
       return new Line([lerpAPoint, lerpBPoint]);
     }
 
-    const lerpFactor = lerp || this.lerpFactor;
+    const lerpFactor = lerp;
     const lerpA = pointAA.lerp(pointAB, lerpFactor);
 
     const lerpAPoint = new Point(lerpA);

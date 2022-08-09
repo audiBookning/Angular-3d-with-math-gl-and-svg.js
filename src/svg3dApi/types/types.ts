@@ -10,7 +10,6 @@ export interface Cube3d {
 }
 
 export interface VectorHash {
-  // key === id
   [key: string]: Vector4;
 }
 
