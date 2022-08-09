@@ -4,12 +4,12 @@ import { Vector4 } from '@math.gl/core';
 
 import { Line } from '../Line';
 import { Point } from '../Point';
-import { Projection } from '../Projection';
 
 export class LerpLines {
   baseLineA: Line;
   baseLineB: Line;
   public lerpObservable: BehaviorSubject<number>;
+
   private _lerpFactor: number;
   public get lerpFactor(): number {
     return this._lerpFactor;
@@ -18,8 +18,9 @@ export class LerpLines {
     this._lerpFactor = value;
     this.lerpObservable.next(this._lerpFactor);
   }
+
   private _lerpLine: Line;
-  projection: Projection;
+
   public get lerpLine(): Line {
     return this.getLerpLine(this.lerpFactor);
   }
@@ -31,7 +32,6 @@ export class LerpLines {
     this._lerpFactor = 0.8;
     this._lerpLine = this.getLerpLine(this.lerpFactor);
 
-    this.projection = new Projection();
     this.lerpObservable = new BehaviorSubject<number>(this._lerpFactor);
   }
 
