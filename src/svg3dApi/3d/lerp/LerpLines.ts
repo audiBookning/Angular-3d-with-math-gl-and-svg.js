@@ -29,6 +29,7 @@ export class LerpLines {
     const [baseA, baseB] = Object.values(baseLines);
     this.baseLineA = baseA;
     this.baseLineB = baseB;
+    // TODO: get the lerp factor from the constructor args.
     this._lerpFactor = 0.8;
     this._lerpLine = this.getLerpLine(this.lerpFactor);
 
@@ -90,7 +91,8 @@ export class LerpLines {
     return new Line([lerpAPoint, lerpBPoint]);
   }
 
-  static generateLerpLine() {
+  // TODO: move to a separate factory class or turn into a more general function?
+  static generateDefaultLerpLine() {
     const point11 = new Point(new Vector4([1, 1, 1, 0]));
     const point12 = new Point(new Vector4([-1, 1, 1, 0]));
     const line1 = new Line([point11, point12]);

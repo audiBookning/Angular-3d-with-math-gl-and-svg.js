@@ -1,12 +1,11 @@
 import '@svgdotjs/svg.draggable.js';
 
 import { Injectable } from '@angular/core';
-import { Matrix3, Vector4 } from '@math.gl/core';
 import {
   Box,
   G,
   Line as LineSvg,
-  Polygon,
+  Polygon as SVGPolygon,
   Rect,
   SVG,
   Svg,
@@ -17,6 +16,13 @@ import { Line } from '../3d/Line';
 import { Projection } from '../3d/Projection';
 import { SvgInput } from '../types/types';
 import { color_generator } from '../utils/utils';
+
+interface ViewBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -31,17 +37,29 @@ export class SvgLerp {
 
   private svgDraw: Svg;
   constraintBox: Box | undefined;
-  svgPolygon: Polygon | undefined;
+  svgPolygon: SVGPolygon | undefined;
   lines: Line[] | undefined;
   rectBox: Rect | undefined;
   svgLerpLine: LineSvg | undefined;
+  // TODO: move defaults to separate config file?
+  defaultViewBox: ViewBox = { x: -60, y: -60, width: 100, height: 100 };
 
   constructor() {
-    this.obj3d = LerpLines.generateLerpLine();
+    this.obj3d = LerpLines.generateDefaultLerpLine();
     this.projection = new Projection();
     this.svgDraw = SVG();
-    this.svgDraw.viewbox(-60, -60, 100, 100);
+    this.svgDraw.viewbox(
+      this.defaultViewBox.x,
+      this.defaultViewBox.y,
+      this.defaultViewBox.width,
+      this.defaultViewBox.height
+    );
     this.svgGroup = this.svgDraw.group();
+  }
+
+  public setViewBox(viewbox: ViewBox) {
+    const { x = -60, y = -60, width = 100, height = 100 }: ViewBox = viewbox;
+    this.svgDraw.viewbox(x, y, width, height);
   }
 
   public getLerpObservable() {
@@ -63,9 +81,11 @@ export class SvgLerp {
     this.drawLinesArray();
   };
 
-  drawPolygon(lines: Line[]) {
+  private drawPolygon(lines: Line[]) {
     if (!this.svgGroup) return;
 
+    // TODO: Move to static method on Polygon class?
+    // should be a different polygon class than the one existing now
     const originalPointA = lines[0].getVectors()[0];
     const originalPointB = lines[0].getVectors()[1];
     const originalPointC = lines[1].getVectors()[1];
@@ -99,7 +119,8 @@ export class SvgLerp {
     );
   }
 
-  getTransformMatrix(box: Box) {
+  // TODO: not needed?
+  private getTransformMatrix(box: Box) {
     let { x, y } = box;
     const transconsolidate = this.svgGroup.node.transform.baseVal.consolidate();
     if (transconsolidate) {
@@ -111,7 +132,7 @@ export class SvgLerp {
     }
   }
 
-  drawLinesArray() {
+  private drawLinesArray() {
     if (!this.lines || this.lines.length === 0) {
       this.lines = this.obj3d.getBaseLines();
       for (const line of this.lines) {
@@ -126,7 +147,7 @@ export class SvgLerp {
     this.drawLine(lerp, 'lerp');
   }
 
-  drawLine(line: Line, type: string) {
+  private drawLine(line: Line, type: string) {
     const vects4 = line.getVectors().flatMap((vect) => {
       const [pointX1, pointY1] = this.projection.getScreenCoordinates(vect);
 
@@ -206,7 +227,8 @@ export class SvgLerp {
     }
   }
 
-  getLinePointsFromBox(box: Box) {
+  // TODO: not needed?
+  private getLinePointsFromBox(box: Box) {
     const pointAX = box.x;
     const pointAY = box.y + box.height;
     const pointBX = box.x + box.width;
@@ -224,14 +246,14 @@ export class SvgLerp {
     return [pointA, pointB];
   }
 
-  onDestroy() {
+  public onDestroy() {
     this.obj3dReset();
 
     this.svgDraw.remove();
   }
 
-  obj3dReset() {
+  private obj3dReset() {
     this.projection.onDestroy();
-    this.obj3d = LerpLines.generateLerpLine();
+    this.obj3d = LerpLines.generateDefaultLerpLine();
   }
 }
